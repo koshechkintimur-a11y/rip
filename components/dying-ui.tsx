@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useWorld } from '@/components/world-provider';
-import { formatCountdown } from '@/lib/phases';
+import { formatCountdown, getDeathState } from '@/lib/phases';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiGet } from '@/lib/api';
 
@@ -51,13 +51,10 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
   const isEmergency = phase === 'emergency';
   const isCritical = phase === 'critical';
 
-  const showCountdown = !isDead;
-  const showNav = !isFinal && !isDead;
-  // progressive destruction
-  const showComposer = remainingMs > 5 * 60 * 1000 && !isDead;
-  const showAttention = remainingMs > 3 * 60 * 1000 && !isDead;
-  const showDm = remainingMs > 10 * 60 * 1000 && !isDead;
-  const showSecondary = remainingMs > 60 * 60 * 1000 && !isDead;
+  // единый источник состояния умирания — без дублирования логики
+  const ds = getDeathState(remainingMs);
+  const showCountdown = ds.showCountdown;
+  const showNav = ds.showNav;
 
   const countdownTone = isFinal ? 'text-rip-blood animate-pulse-hard' : isEmergency ? 'text-rip-warn' : 'text-rip-text';
 

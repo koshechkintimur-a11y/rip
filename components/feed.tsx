@@ -35,7 +35,6 @@ export function FeedList() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
-  const firstLoad = useRef(true);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const mergeItems = useCallback((incoming: FeedItem[], replace: boolean) => {
@@ -55,9 +54,9 @@ export function FeedList() {
     try {
       const data = await fetch(`/api/feed${qs}`).then((r) => r.json());
       if (data.error) throw new Error(data.error);
-      // заменяем ленту ТОЛЬКО при первом заполнении; поллинг/пагинация — мержат
-      const shouldReplace = !before && firstLoad.current;
-      firstLoad.current = false;
+      // Первая страница ВСЕГДА заменяет ленту: новые сообщения появляются,
+      // погибшие (dead) исчезают без ручного refresh. Пагинация (before) — мержит в конец.
+      const shouldReplace = !before;
       mergeItems(data.items || [], shouldReplace);
       setHasMore(data.hasMore);
       setError(null);

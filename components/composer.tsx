@@ -5,11 +5,11 @@ import { useWorld } from '@/components/world-provider';
 import { apiPost } from '@/lib/api';
 import { GifPicker } from '@/components/gif-picker';
 
-/** Композер: текст + картинка + GIF-URL. */
+/** Композер: текст + картинка + GIF + видео. */
 export function Composer({ onPosted }: { onPosted?: () => void }) {
   const { refresh } = useWorld();
   const [text, setText] = useState('');
-  const [media, setMedia] = useState<{ url: string; type: 'image' | 'gif' } | null>(null);
+  const [media, setMedia] = useState<{ url: string; type: 'image' | 'gif' | 'video' } | null>(null);
   const [showGif, setShowGif] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,8 +42,10 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
 
   const onFile = async (f: File | undefined) => {
     if (!f) return;
-    if (!f.type.startsWith('image/')) {
-      setError('Нужна картинка (PNG/JPEG/WebP/GIF/HEIC)');
+    const isImage = f.type.startsWith('image/');
+    const isVideo = f.type === 'video/mp4' || f.type === 'video/webm';
+    if (!isImage && !isVideo) {
+      setError('Нужна картинка (PNG/JPEG/WebP/GIF/HEIC) или видео (MP4/WebM)');
       return;
     }
     const form = new FormData();
@@ -65,8 +67,12 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
     <div className="border-b border-rip-line bg-rip-bg px-3 py-2">
       {media && (
         <div className="relative mb-2 inline-block">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={media.url} alt="" className="h-20 rounded border border-rip-line" />
+          {media.type === 'video' ? (
+            <video src={media.url} controls playsInline className="h-20 rounded border border-rip-line" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={media.url} alt="" className="h-20 rounded border border-rip-line" />
+          )}
           <button
             className="absolute -top-1.5 -right-1.5 bg-rip-blood text-white rounded-full w-5 h-5 text-xs leading-none"
             onClick={() => setMedia(null)}
@@ -100,7 +106,7 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
             →
           </button>
         </div>
-        <input ref={fileRef} type="file" accept="image/*,.heic,.heif" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
+        <input ref={fileRef} type="file" accept="image/*,.heic,.heif,video/mp4,video/webm" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
       </div>
       {error && <p className="mt-1 text-xs text-rip-blood">⚠️ {error}</p>}
       {showGif && <GifPicker onPick={onGif} onClose={() => setShowGif(false)} />}

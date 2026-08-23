@@ -35,7 +35,7 @@ export const dmSchema = z.object({
   content: z.string().trim().max(1000).optional().nullable().default(''),
   mediaUrl,
   mediaType: z.enum(['image', 'gif', 'video']).optional().nullable(),
-}).refine((v) => (v.content || '').length > 0 || !!v.mediaUrl, {
+}).refine((v) => (v.content || '').length > 0 || !!v.mediaUrl || !!v.recipientId, {
   message: 'Пустое сообщение',
 });
 

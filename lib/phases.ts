@@ -13,6 +13,60 @@ export function getPhase(remainingMs: number): SeasonPhase {
   return 'calm';
 }
 
+/**
+ * ЕДИНЫЙ источник состояния «умирания» интерфейса.
+ * Все компоненты (DyingUI, feed, навигация) берут отсюда — без дублирования логики.
+ * Прогрессивная деградация по таймеру (intentional RIP-механика, не поломка):
+ *   6ч    — предупреждение
+ *   3ч    — лёгкая нестабильность (glitch)
+ *   1ч    — исчезают второстепенные элементы
+ *   30м   — заметная нестабильность
+ *   10м   — исчезает DM
+ *   5м    — исчезает композер
+ *   3м    — исчезает attention feed
+ *   1м    — лента начинает разрушаться
+ *   30с   — почти всё исчезает
+ *   10с   — остаётся только countdown
+ *   0     — YOU RIP
+ */
+export type DeathState = {
+  showNav: boolean;
+  showDm: boolean;
+  showAttention: boolean;
+  showComposer: boolean;
+  showSecondary: boolean;
+  showFeed: boolean;
+  showCountdown: boolean;
+  glitchLevel: 0 | 1 | 2 | 3;
+  intensity: number; // 0..1 — насколько близко к смерти
+};
+
+export function getDeathState(remainingMs: number): DeathState {
+  const ms = Math.max(0, remainingMs);
+  const MIN = 60_000;
+  const isDead = remainingMs <= 0;
+
+  // интенсивность: 0 при 6ч+, 1 при 0
+  const intensity = Math.min(1, Math.max(0, 1 - ms / (6 * HOUR)));
+
+  let glitchLevel: 0 | 1 | 2 | 3 = 0;
+  if (ms <= 3 * HOUR) glitchLevel = 1;
+  if (ms <= 30 * MIN) glitchLevel = 2;
+  if (ms <= MIN) glitchLevel = 3;
+
+  return {
+    showNav: !isDead && ms > 10 * MIN,
+    showDm: !isDead && ms > 10 * MIN,
+    showAttention: !isDead && ms > 3 * MIN,
+    showComposer: !isDead && ms > 5 * MIN,
+    showSecondary: !isDead && ms > HOUR,
+    showFeed: !isDead && ms > 30 * 1000,
+    showCountdown: !isDead,
+    glitchLevel,
+    intensity,
+  };
+}
+
 /** Русская плюрализация: plural(5, ['сообщение','сообщения','сообщений']) */
 export function plural(n: number, forms: [string, string, string]): string {
   const abs = Math.abs(n) % 100;

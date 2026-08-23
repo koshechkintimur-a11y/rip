@@ -95,15 +95,19 @@ export async function POST(req: Request) {
 
   if (!convId) return NextResponse.json({ error: 'Нет адресата' }, { status: 400 });
 
-  const msg = await qOne<{ id: string; created_at: string }>(
-    `insert into direct_messages (conversation_id, sender_id, content, media_url, media_type)
-     values ($1, $2, $3, $4, $5) returning id, created_at`,
-    [convId, user.id, cleanContent, mediaUrl || null, mediaType || null]
-  );
-  await q(`update direct_conversations set last_message = $1 where id = $2`, [cleanContent.slice(0, 80) || '📷', convId]);
+  const hasContent = cleanContent.length > 0 || !!mediaUrl;
+  let msg = null;
+  if (hasContent) {
+    msg = await qOne<{ id: string; created_at: string }>(
+      `insert into direct_messages (conversation_id, sender_id, content, media_url, media_type)
+       values ($1, $2, $3, $4, $5) returning id, created_at`,
+      [convId, user.id, cleanContent, mediaUrl || null, mediaType || null]
+    );
+    await q(`update direct_conversations set last_message = $1 where id = $2`, [cleanContent.slice(0, 80) || '📷', convId]);
 
-  if (otherUserId) {
-    void pushToUser(otherUserId, { title: '✉ Личное сообщение', body: cleanContent.slice(0, 60) || '📷', url: '/dm' });
+    if (otherUserId) {
+      void pushToUser(otherUserId, { title: '✉ Личное сообщение', body: cleanContent.slice(0, 60) || '📷', url: '/dm' });
+    }
   }
 
   return NextResponse.json({ ok: true, message: msg, conversationId: convId });

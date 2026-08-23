@@ -34,9 +34,9 @@ export default function UserProfilePage() {
 
   const dm = async () => {
     try {
+      // только создаём/находим диалог — НЕ отправляем сообщение автоматически
       const res = await apiPost<{ conversationId: string }>('/api/dm', {
         recipientId: data!.profile.id,
-        content: 'привет',
       });
       router.push(`/dm/${res.conversationId}`);
     } catch { /* тихо */ }

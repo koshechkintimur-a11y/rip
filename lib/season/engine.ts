@@ -16,10 +16,13 @@ export async function getActiveSeason() {
   return qOne(`select * from seasons where status = 'active' order by number desc limit 1`);
 }
 
-/** Рождение мира: создать сезон #1, если сезонов ещё нет вовсе. */
+/**
+ * Рождение мира: вернуть ACTIVE сезон; если его нет — создать новый.
+ * ВАЖНО: ended season ≠ active world. Никогда не возвращаем ended как рабочий.
+ */
 export async function ensureWorldBirth() {
-  const latest = await getLatestSeason();
-  if (latest) return latest;
+  const active = await getActiveSeason();
+  if (active) return active;
   return qOne(`select * from ensure_active_season($1)`, [seasonDuration()]);
 }
 
@@ -53,13 +56,20 @@ export async function runDailyReset() {
   return res;
 }
 
+/**
+ * Смерть сезона: финализация сообщений + автоматическое рождение нового сезона.
+ * Замыкает цикл death → new active season. Сообщения не удаляются физически.
+ */
 export async function runSeasonDeath() {
-  const row = await qOne<{ season_death: Record<string, unknown> }>(`select season_death() as season_death`);
-  const res = row?.season_death ?? null;
+  const row = await qOne<{ death_and_new_season: Record<string, unknown> }>(
+    `select death_and_new_season($1) as death_and_new_season`,
+    [seasonDuration()]
+  );
+  const res = row?.death_and_new_season ?? null;
   if (res) {
     void pushToAll({
       title: `💀 СЕЗОН #${res.ended_season} ЗАВЕРШЁН`,
-      body: `Погибло ${res.messages_died_total} · Выжило ${res.messages_survived_final}`,
+      body: `Погибло ${res.messages_died_total} · Родился СЕЗОН #${res.new_season_number}`,
       url: '/',
     });
   }

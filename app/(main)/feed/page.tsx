@@ -5,10 +5,11 @@ import { AttentionFeed } from '@/components/attention-feed';
 import { Composer } from '@/components/composer';
 import { FeedList } from '@/components/feed';
 import { useWorld } from '@/components/world-provider';
-import { apiGet } from '@/lib/api';
-import type { DbAttentionSlot } from '@/lib/types';
 import { AttentionBuy } from '@/components/attention-buy';
 import { PushManager } from '@/components/push-manager';
+import { getDeathState } from '@/lib/phases';
+import { apiGet } from '@/lib/api';
+import type { DbAttentionSlot } from '@/lib/types';
 
 /** Главный экран: бегущее внимание + лента + композер закреплён внизу. */
 export default function FeedPage() {
@@ -17,9 +18,10 @@ export default function FeedPage() {
   const [showBuy, setShowBuy] = useState(false);
   const [feedKey, setFeedKey] = useState(0);
 
-  // progressive destruction: внимание исчезает за 3 мин до конца, композер — за 5
-  const showAttention = remainingMs > 3 * 60 * 1000;
-  const showComposer = remainingMs > 5 * 60 * 1000;
+  // единый источник состояния умирания (внимание исчезает за 3 мин, композер — за 5)
+  const deathState = getDeathState(remainingMs);
+  const showAttention = deathState.showAttention && slots.length > 0;
+  const showComposer = deathState.showComposer;
 
   useEffect(() => {
     let alive = true;

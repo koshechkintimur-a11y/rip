@@ -26,7 +26,12 @@ async function main() {
   const applied = new Set(rows.map((r) => r.name));
 
   const dir = path.join(root, 'db');
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort((a, b) => {
+    // schema.sql — базовая схема, применяется ПЕРВОЙ; остальные — по номеру
+    if (a === 'schema.sql') return -1;
+    if (b === 'schema.sql') return 1;
+    return a.localeCompare(b);
+  });
 
   for (const f of files) {
     if (applied.has(f)) { console.log(`skip  ${f}`); continue; }
