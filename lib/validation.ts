@@ -3,11 +3,15 @@ import { z } from 'zod';
 export const signupSchema = z.object({
   email: z.string().email('Некорректный email'),
   password: z.string().min(6, 'Минимум 6 символов'),
+  confirmPassword: z.string().min(6, 'Минимум 6 символов'),
   username: z
     .string()
     .min(3, 'Минимум 3 символа')
     .max(20, 'Максимум 20 символов')
     .regex(/^[a-z0-9_]+$/, 'Только a-z, 0-9 и _'),
+}).refine((v) => v.password === v.confirmPassword, {
+  message: 'Пароли не совпадают',
+  path: ['confirmPassword'],
 });
 
 export const loginSchema = z.object({

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
@@ -197,10 +198,13 @@ export default function MyProfilePage() {
           ))}
       </div>
 
-      {/* БАЛАНС И ВЫХОД */}
+      {/* БАЛАНС, НАСТРОЙКИ И ВЫХОД */}
       <div className="px-4 py-4 flex items-center justify-between border-t border-rip-line mt-4">
         <span className="text-xs text-rip-dim">💀 {data.wallet.balance} монет</span>
-        <button onClick={() => void logout()} className="text-xs text-rip-blood/80 hover:text-rip-blood">выйти</button>
+        <div className="flex items-center gap-4">
+          <Link href="/settings" className="text-xs text-rip-dim hover:text-rip-text">настройки</Link>
+          <button onClick={() => void logout()} className="text-xs text-rip-blood/80 hover:text-rip-blood">выйти</button>
+        </div>
       </div>
     </div>
   );

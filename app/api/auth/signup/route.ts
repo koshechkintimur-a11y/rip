@@ -26,7 +26,7 @@ async function handle(req: Request) {
     return NextResponse.json({ error: 'Такой ник недопустим' }, { status: 400 });
   }
 
-  // уникальность
+  // уникальность: проверяем ДО создания
   const clash = await qOne(`select id from profiles where username = $1`, [username]);
   if (clash) return NextResponse.json({ error: 'Ник уже занят' }, { status: 409 });
   const emailClash = await qOne(`select id from users where email = $1`, [email]);

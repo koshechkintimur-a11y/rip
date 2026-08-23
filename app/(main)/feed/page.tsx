@@ -72,7 +72,7 @@ export default function FeedPage() {
 
       {/* КОМПОЗЕР — закреплён над нижней навигацией; исчезает за 5 мин до конца */}
       {showComposer && (
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-xl z-30 border-t border-rip-line bg-rip-bg">
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+3.5rem)] left-1/2 -translate-x-1/2 w-full max-w-xl z-30 border-t border-rip-line bg-rip-bg" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <Composer onPosted={() => setFeedKey((k) => k + 1)} />
         </div>
       )}
