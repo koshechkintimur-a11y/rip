@@ -28,9 +28,9 @@ async function main() {
   // 1. signup обоих
   const u1 = `e2e_a_${rnd}`;
   const u2 = `e2e_b_${rnd}`;
-  const s1 = await api('/api/auth/signup', { method: 'POST', body: j({ email: `${u1}@rip.test`, password: 'test123', username: u1 }) });
+  const s1 = await api('/api/auth/signup', { method: 'POST', body: j({ email: `${u1}@rip.test`, password: 'test123', confirmPassword: 'test123', username: u1 }) });
   check('signup A', s1.status === 200, JSON.stringify(s1.data));
-  const s2 = await api('/api/auth/signup', { method: 'POST', body: j({ email: `${u2}@rip.test`, password: 'test123', username: u2 }) });
+  const s2 = await api('/api/auth/signup', { method: 'POST', body: j({ email: `${u2}@rip.test`, password: 'test123', confirmPassword: 'test123', username: u2 }) });
   check('signup B', s2.status === 200, JSON.stringify(s2.data));
 
   async function login(email, password) {

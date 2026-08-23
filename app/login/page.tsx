@@ -70,6 +70,13 @@ export default function LoginPage() {
       </div>
 
       <div className="space-y-3">
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          type="email"
+          className={inputCls}
+        />
         {tab === 'signup' && (
           <>
             <div>
@@ -83,13 +90,6 @@ export default function LoginPage() {
               {usernameTaken === true && <p className="text-xs text-rip-blood mt-1">Этот ник уже занят</p>}
               {usernameTaken === false && username.length >= 3 && <p className="text-xs text-rip-green mt-1">Ник свободен ✓</p>}
             </div>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              type="email"
-              className={inputCls}
-            />
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}

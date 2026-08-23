@@ -6,7 +6,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import { formatDate, plural } from '@/lib/phases';
 
 type OtherProfile = {
-  profile: { id: string; username: string; display_name: string | null; bio: string | null; created_at: string };
+  profile: { id: string; username: string; display_name: string | null; avatar_url: string | null; bio: string | null; created_at: string };
   stats: { total: number; alive: number; dead: number; legendary: number; branches: number; in_branches: number };
   survived: Array<{ id: string; content: string; status: string; survival_count: number; created_at: string }>;
   dead: Array<{ id: string; content: string; status: string; survival_count: number; created_at: string }>;
@@ -53,9 +53,14 @@ export default function UserProfilePage() {
 
       <div className="px-4 pt-2 pb-3 border-b border-rip-line">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-rip-panel border border-rip-line flex items-center justify-center text-xl">
-            {profile.username[0]?.toUpperCase()}
-          </div>
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full border border-rip-line object-cover" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-rip-panel border border-rip-line flex items-center justify-center text-xl">
+              {profile.username[0]?.toUpperCase()}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <h1 className="font-bold text-base truncate">{profile.display_name || profile.username}</h1>
             <p className="text-xs text-rip-dim">@{profile.username} · с {formatDate(profile.created_at)}</p>
