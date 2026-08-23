@@ -9,8 +9,22 @@ import { apiPost } from '@/lib/api';
 import type { FeedItem } from '@/lib/types';
 import { MediaRenderer } from '@/components/media-renderer';
 import { Avatar } from '@/components/avatar';
+import { LinkPreview } from '@/components/link-preview';
 
 const ITEMS_PER_PAGE = 30;
+
+/** Репост сообщения: мягкое обновление без полной перезагрузки страницы. */
+async function repostMessage(messageId: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/messages', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messageId }) });
+    const d = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(d?.error || 'Ошибка репоста');
+    return true;
+  } catch (e: any) {
+    alert(e.message || 'Не удалось репостнуть');
+    return false;
+  }
+}
 
 export function FeedList() {
   const { season, phase } = useWorld();
@@ -185,7 +199,9 @@ function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
       onClick={() => router.push(`/message/${item.id}`)}
     >
       <div className="flex items-start gap-2.5">
-        <Avatar url={item.avatar_url} username={item.username} size={36} />
+        <button onClick={(e) => { e.stopPropagation(); router.push(`/profile/${item.username}`); }} className="shrink-0">
+          <Avatar url={item.avatar_url} username={item.username} size={36} />
+        </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
             <span
@@ -199,11 +215,23 @@ function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
               {new Date(item.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
-          <p className={`mt-0.5 text-[15px] leading-snug break-words ${isDead ? 'line-through decoration-rip-dim/40' : ''}`}>
-            {item.content}
-          </p>
-          {item.media_url && (
-            <MediaRenderer url={item.media_url} type={item.media_type} />
+          {item.repost_of_id ? (
+            // РЕПОСТ: только рамка с оригиналом, без дублирования контента
+            <div className="mt-1.5 border border-rip-line rounded-md bg-rip-panel/40 p-2 cursor-pointer" onClick={(e) => { e.stopPropagation(); router.push(`/message/${item.repost_of_id}`); }}>
+              <span className="text-[10px] text-rip-dim">🔁 репост @{item.repost_username}</span>
+              {item.repost_content && <p className="mt-0.5 text-sm">{item.repost_content}</p>}
+              {item.repost_media_url && <MediaRenderer url={item.repost_media_url} type={item.repost_media_type} />}
+            </div>
+          ) : (
+            <>
+              <p className={`mt-0.5 text-[15px] leading-snug break-words ${isDead ? 'line-through decoration-rip-dim/40' : ''}`}>
+                {item.content}
+              </p>
+              {!item.media_url && item.content && <LinkPreview text={item.content} />}
+              {item.media_url && (
+                <MediaRenderer url={item.media_url} type={item.media_type} />
+              )}
+            </>
           )}
           <div className="mt-1 flex items-center gap-4 text-xs text-rip-dim" onClick={(e) => e.stopPropagation()}>
             <button
@@ -215,6 +243,13 @@ function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
               {newAfterMe > 0 && <span className="text-[10px] font-bold">+{newAfterMe}</span>}
             </button>
             <ReactButton messageId={item.id} initialCount={item.reaction_count ?? 0} />
+            <button
+              className="flex items-center gap-1 hover:text-rip-text transition-colors"
+              onClick={async (e) => { e.stopPropagation(); const ok = await repostMessage(item.id); if (ok) { /* лента обновится поллингом */ } }}
+              title="Репостнуть"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            </button>
           </div>
         </div>
       </div>

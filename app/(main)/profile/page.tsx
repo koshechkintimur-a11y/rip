@@ -57,7 +57,10 @@ export default function MyProfilePage() {
       const res = await fetch('/api/upload', { method: 'POST', body: form });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Ошибка загрузки');
+      // сохраняем сразу в БД, чтобы не сбрасывалось при перезагрузке
+      await apiPatch('/api/profile', { avatarUrl: d.url });
       setAvatarUrl(d.url);
+      refresh();
     } catch (e: any) {
       alert(e.message || 'Не удалось загрузить аватар');
     }

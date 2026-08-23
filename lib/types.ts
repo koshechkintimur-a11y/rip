@@ -105,6 +105,11 @@ export type FeedItem = {
   display_name?: string | null;
   avatar_url?: string | null;
   branch_id?: string | null;
+  repost_of_id?: string | null;
+  repost_content?: string | null;
+  repost_media_url?: string | null;
+  repost_media_type?: 'image' | 'gif' | 'video' | null;
+  repost_username?: string | null;
   reply_count?: number;
   participated?: boolean;
   new_after_me?: number;

@@ -34,3 +34,36 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, message: msg });
 }
+
+/** Репост: сообщение-копия со ссылкой на оригинал. */
+export async function PUT(req: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+  if (!rateLimit(`repost:${user.id}`, 5, 60_000)) return tooMany();
+
+  const body = await req.json().catch(() => null);
+  const originalId = body?.messageId as string | undefined;
+  if (!originalId) return NextResponse.json({ error: 'Нет messageId' }, { status: 400 });
+
+  const original = await qOne(
+    `select m.id, m.author_id, m.season_id, m.status, m.content, m.media_url, m.media_type
+     from messages m where m.id = $1`,
+    [originalId]
+  );
+  if (!original) return NextResponse.json({ error: 'Сообщение не найдено' }, { status: 404 });
+
+  let season = await getLatestSeason();
+  if (!season) season = await ensureWorldBirth();
+  if ((season as any).status === 'ended') {
+    return NextResponse.json({ error: 'Мир мёртв. Нажми CONTINUE, чтобы начать новый сезон.', code: 'world_dead' }, { status: 400 });
+  }
+
+  // репост: только ссылка на оригинал, без копирования контента
+  const msg = await qOne(
+    `insert into messages (author_id, season_id, content, media_url, media_type, repost_of_id, status)
+     values ($1, $2, '', null, null, $3, 'active') returning id, created_at`,
+    [user.id, (season as any).id, originalId]
+  );
+
+  return NextResponse.json({ ok: true, message: msg });
+}

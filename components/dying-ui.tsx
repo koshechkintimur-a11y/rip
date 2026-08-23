@@ -76,13 +76,13 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
               <div className={`text-center font-mono ${countdownTone} ${isFinal ? 'text-base' : isEmergency ? 'text-sm' : 'text-xs'} tracking-wider`}>
                 {season && remainingMs > 0 && (
                   <>
-                    <span className="text-rip-dim">СЕЗОН #{season.number}</span>
+                    <Link href="/seasons" className="text-rip-dim hover:text-rip-warn transition-colors" title="История сезонов">СЕЗОН #{season.number}</Link>
                     <span className="mx-1 text-rip-dim">·</span>
                     ОСТАЛОСЬ {formatCountdown(remainingMs)}
                   </>
                 )}
                 {season && remainingMs <= 0 && !isDead && (
-                  <span className="text-rip-blood">СЕЗОН #{season.number} ЗАВЕРШАЕТСЯ…</span>
+                  <Link href="/seasons" className="text-rip-blood hover:text-rip-warn transition-colors">СЕЗОН #{season.number} ЗАВЕРШАЕТСЯ…</Link>
                 )}
               </div>
               <Link href="/notifications" className="relative w-8 text-right shrink-0" title="Ответы на мои сообщения">
@@ -104,7 +104,7 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
       </AnimatePresence>
 
       {/* КОНТЕНТ */}
-      <main className="pb-24 pt-1">{children}</main>
+      <main className="pb-36 pt-1">{children}</main>
 
       {/* НИЖНЯЯ НАВИГАЦИЯ — исчезает в финальной фазе */}
       <AnimatePresence>
