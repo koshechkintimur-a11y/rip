@@ -5,9 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
 import { useLightbox } from '@/components/lightbox';
+import { Avatar } from '@/components/avatar';
 import { formatTime } from '@/lib/phases';
 
-type Msg = { id: string; conversation_id: string; sender_id: string; content: string; created_at: string; sender_username: string; media_url?: string | null };
+type Msg = { id: string; conversation_id: string; sender_id: string; content: string; created_at: string; sender_username: string; sender_avatar_url?: string | null; media_url?: string | null };
 
 /** Диалог с конкретным пользователем. */
 export default function DmChatPage() {
@@ -109,7 +110,8 @@ export default function DmChatPage() {
         {messages.map((m) => {
           const mine = myId !== null && m.sender_id === myId;
           return (
-            <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+            <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'} gap-2 items-end`}>
+              {!mine && <Avatar url={m.sender_avatar_url} username={m.sender_username} size={28} />}
               <div className={`max-w-[80%] rounded-lg px-3 py-2 border ${mine ? 'bg-rip-panel2 border-rip-line' : 'bg-rip-panel border-rip-line'}`}>
                 <div className="flex items-baseline gap-2 mb-0.5">
                   <button

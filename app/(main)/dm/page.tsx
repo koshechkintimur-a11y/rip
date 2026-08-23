@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { apiGet } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
+import { Avatar } from '@/components/avatar';
 import { formatTime } from '@/lib/phases';
 
 type Conv = {
@@ -11,6 +12,7 @@ type Conv = {
   other_id: string;
   other_username: string;
   other_display_name: string | null;
+  other_avatar_url?: string | null;
   last_message: string | null;
   unread: number;
   created_at: string;
@@ -57,9 +59,7 @@ export default function DmListPage() {
             href={`/dm/${c.id}`}
             className="flex items-center gap-3 px-4 py-3 border-b border-rip-line/50 hover:bg-rip-panel/40 transition-colors"
           >
-            <div className="w-10 h-10 rounded-full bg-rip-panel border border-rip-line flex items-center justify-center text-lg shrink-0">
-              {c.other_username?.[0]?.toUpperCase()}
-            </div>
+            <Avatar url={c.other_avatar_url} username={c.other_username} size={40} />
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between">
                 <span className="text-sm font-medium truncate">{c.other_display_name || c.other_username}</span>

@@ -7,7 +7,8 @@ import { useWorld } from '@/components/world-provider';
 import { formatCountdown, plural } from '@/lib/phases';
 import { apiPost } from '@/lib/api';
 import type { FeedItem } from '@/lib/types';
-import { useLightbox } from '@/components/lightbox';
+import { MediaRenderer } from '@/components/media-renderer';
+import { Avatar } from '@/components/avatar';
 
 const ITEMS_PER_PAGE = 30;
 
@@ -167,7 +168,6 @@ function DiscusJump({ items }: { items: FeedItem[] }) {
 
 function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
   const router = useRouter();
-  const { open: openImage } = useLightbox();
 
   if (item.type === 'system') {
     return <SystemRow item={item} />;
@@ -177,59 +177,46 @@ function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
   const isLegendary = item.status === 'legendary' || (item.survival_count ?? 0) >= 5;
   const replyCount = item.reply_count ?? 0;
   const critical = phase === 'emergency' || phase === 'final';
-  const isDiscus = replyCount > 0;
-  const participated = !!item.participated;
   const newAfterMe = item.new_after_me ?? 0;
 
   return (
     <div
-      className={`border-b border-rip-line/60 py-2.5 px-1 cursor-pointer hover:bg-rip-panel/40 transition-colors ${isDead ? 'opacity-50' : ''} ${critical ? 'group/fade' : ''}`}
+      className={`py-3 cursor-pointer hover:bg-rip-panel/30 transition-colors ${isDead ? 'opacity-40' : ''} ${critical ? 'group/fade' : ''}`}
       onClick={() => router.push(`/message/${item.id}`)}
     >
-      <div className="flex items-baseline gap-2 text-sm flex-wrap">
-        <span
-          className="text-rip-dim shrink-0 hover:text-rip-text cursor-pointer"
-          onClick={(e) => { e.stopPropagation(); router.push(`/profile/${item.username}`); }}
-        >
-          {item.username}
-        </span>
-        <span className="text-[11px] text-rip-dim/60 shrink-0">
-          {new Date(item.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-        </span>
-        {isLegendary && <span className="text-[10px] text-rip-gold shrink-0">⭐ {item.survival_count}</span>}
-        {item.status === 'dead' && <span className="text-[10px] text-rip-dim/70 shrink-0">💀</span>}
-        {isDiscus && (
-          <span className="text-[9px] tracking-wider text-rip-dim border border-rip-line rounded px-1 shrink-0">
-            ДИСКУС · {replyCount}
-          </span>
-        )}
-        {participated && (
-          <span className={`text-[9px] tracking-wider border rounded px-1 shrink-0 ${newAfterMe > 0 ? 'text-rip-warn border-rip-warn/60 bg-rip-warn/10' : 'text-rip-green border-rip-green/40'}`}>
-            {newAfterMe > 0 ? `+${newAfterMe} ОТВЕТА` : 'Я УЧАСТВОВАЛ'}
-          </span>
-        )}
-      </div>
-      <p className={`mt-0.5 text-[15px] leading-snug break-words ${isDead ? 'line-through decoration-rip-dim/50' : ''}`}>
-        {item.content}
-      </p>
-      {item.media_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={item.media_url}
-          alt=""
-          className="mt-1.5 max-h-48 rounded-md border border-rip-line cursor-zoom-in"
-          loading="lazy"
-          onClick={(e) => { e.stopPropagation(); openImage(item.media_url!); }}
-        />
-      )}
-      <div className="mt-1.5 flex items-center gap-3 text-[11px] text-rip-dim" onClick={(e) => e.stopPropagation()}>
-        <button
-          className="hover:text-rip-text transition-colors"
-          onClick={() => void router.push(`/message/${item.id}`)}
-        >
-          ↳ {replyCount} {plural(replyCount, ['ответ', 'ответа', 'ответов'])}
-        </button>
-        <ReactButton messageId={item.id} initialCount={item.reaction_count ?? 0} />
+      <div className="flex items-start gap-2.5">
+        <Avatar url={item.avatar_url} username={item.username} size={36} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2">
+            <span
+              className="font-semibold text-[15px] hover:underline cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); router.push(`/profile/${item.username}`); }}
+            >
+              {item.username}
+            </span>
+            {isLegendary && <span className="text-xs text-rip-gold" title="Легендарное">⭐</span>}
+            <span className="text-xs text-rip-dim/60">
+              {new Date(item.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          <p className={`mt-0.5 text-[15px] leading-snug break-words ${isDead ? 'line-through decoration-rip-dim/40' : ''}`}>
+            {item.content}
+          </p>
+          {item.media_url && (
+            <MediaRenderer url={item.media_url} type={item.media_type} />
+          )}
+          <div className="mt-1 flex items-center gap-4 text-xs text-rip-dim" onClick={(e) => e.stopPropagation()}>
+            <button
+              className={`flex items-center gap-1 hover:text-rip-text transition-colors ${newAfterMe > 0 ? 'text-rip-warn font-medium' : ''}`}
+              onClick={() => void router.push(`/message/${item.id}`)}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>
+              {replyCount}
+              {newAfterMe > 0 && <span className="text-[10px] font-bold">+{newAfterMe}</span>}
+            </button>
+            <ReactButton messageId={item.id} initialCount={item.reaction_count ?? 0} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -264,7 +251,7 @@ function SystemRow({ item }: { item: FeedItem }) {
   const accent = kind === 'season_ended' ? 'text-rip-blood' : kind === 'season_warning' ? 'text-rip-warn' : 'text-rip-green';
 
   return (
-    <div className="border-b border-rip-line/40 py-3 px-1 flex gap-2 items-start">
+    <div className="py-3 flex gap-2 items-start">
       <span className={accent}>{icon}</span>
       <div>
         <p className={`text-[13px] leading-snug ${accent}`}>{item.content}</p>

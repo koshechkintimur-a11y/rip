@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     `select
        'message' as type, m.id, m.content, m.media_url, m.media_type, m.status,
        m.survival_count::int, m.reaction_count::int, m.created_at, m.author_id,
-       p.username, p.display_name, m.branch_id,
+       p.username, p.display_name, p.avatar_url, m.branch_id,
        (select b.reply_count from branches b where b.root_message_id = m.id) as reply_count,
        exists (
          select 1 from branches bb
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
      select
        'system' as type, s.id, s.content, null::text, null::text, 'system'::text,
        null::int, null::int, s.created_at, null::uuid,
-       null::text, null::text, null::uuid, null::int, null::boolean, null::int,
+       null::text, null::text, null::text, null::uuid, null::int, null::boolean, null::int,
        s.kind as event_kind
      from system_events s
      where s.season_id = $1 and ($2::timestamptz is null or s.created_at < $2)

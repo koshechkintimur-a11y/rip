@@ -10,15 +10,13 @@ export const viewport: Viewport = {
   themeColor: '#0a0a0c',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover', // чтобы safe-area (dynamic island / home indicator) работали
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
-      <body className="min-h-dvh bg-rip-bg text-rip-text font-mono antialiased">
+      <body className="min-h-dvh bg-rip-bg text-rip-text antialiased">
         {children}
       </body>
     </html>

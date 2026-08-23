@@ -20,3 +20,11 @@ html, body {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* scroll anchoring: лента не прыгает при добавлении новых сообщений сверху */
+html { overflow-anchor: auto; }
+body { overflow-anchor: auto; }
+main { overflow-anchor: auto; }
+
+/* sticky-элементы: таймер и лента внимания держатся на экране при скролле */
+.sticky-top { position: sticky; top: 0; z-index: 20; }

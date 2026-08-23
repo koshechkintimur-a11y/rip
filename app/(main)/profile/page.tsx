@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
 import { plural, formatDate } from '@/lib/phases';
 
 type MyProfile = {
-  user: { username: string; email: string; display_name: string | null; bio: string | null; is_test_user: boolean };
+  user: { username: string; email: string; display_name: string | null; bio: string | null; avatar_url: string | null; is_test_user: boolean };
   wallet: { balance: number };
   stats: { total: number; alive: number; dead: number; legendary: number; branches: number; in_branches: number };
   messages: Array<{ id: string; content: string; status: string; survival_count: number; created_at: string; died_at: string | null }>;
@@ -23,7 +23,10 @@ export default function MyProfilePage() {
   const [edit, setEdit] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void (async () => {
@@ -31,16 +34,34 @@ export default function MyProfilePage() {
       setData(d);
       setDisplayName(d.user.display_name || '');
       setBio(d.user.bio || '');
+      setAvatarUrl(d.user.avatar_url || null);
     })();
   }, []);
 
   const saveProfile = async () => {
     setSaving(true);
     try {
-      await apiPatch('/api/profile', { displayName: displayName || null, bio: bio || null });
+      await apiPatch('/api/profile', { displayName: displayName || null, bio: bio || null, avatarUrl });
       setEdit(false);
+      refresh();
     } catch { /* тихо */ }
     setSaving(false);
+  };
+
+  const onAvatarFile = async (file?: File) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Ошибка загрузки');
+      setAvatarUrl(d.url);
+    } catch (e: any) {
+      alert(e.message || 'Не удалось загрузить аватар');
+    }
+    setUploading(false);
   };
 
   const logout = async () => {
@@ -58,9 +79,21 @@ export default function MyProfilePage() {
       {/* ШАПКА */}
       <div className="px-4 pt-4 pb-3 border-b border-rip-line">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-rip-panel border border-rip-line flex items-center justify-center text-xl">
-            {user.username[0]?.toUpperCase()}
-          </div>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="relative w-14 h-14 rounded-full bg-rip-panel border border-rip-line overflow-hidden flex items-center justify-center text-xl hover:border-rip-warn transition-colors shrink-0"
+            title={avatarUrl ? 'Сменить аватар' : 'Загрузить аватар'}
+          >
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              user.username[0]?.toUpperCase()
+            )}
+            {uploading && <span className="absolute inset-0 bg-black/50 flex items-center justify-center text-[10px]">…</span>}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => void onAvatarFile(e.target.files?.[0])} />
           <div className="flex-1 min-w-0">
             <h1 className="font-bold text-base truncate">{user.display_name || user.username}</h1>
             <p className="text-xs text-rip-dim">@{user.username}</p>

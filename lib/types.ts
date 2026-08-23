@@ -34,7 +34,7 @@ export type DbMessage = {
   season_id: string;
   content: string;
   media_url: string | null;
-  media_type: 'image' | 'gif' | null;
+  media_type: 'image' | 'gif' | 'video' | null;
   parent_message_id: string | null;
   branch_id: string | null;
   status: MessageStatus;
@@ -66,7 +66,7 @@ export type DbAttentionSlot = {
   status: 'scheduled' | 'active' | 'expired';
   created_at: string;
   media_url: string | null;
-  media_type: 'image' | 'gif' | null;
+  media_type: 'image' | 'gif' | 'video' | null;
   username?: string | null;
 };
 
@@ -95,19 +95,18 @@ export type FeedItem = {
   id: string;
   content: string;
   media_url: string | null;
-  media_type: 'image' | 'gif' | null;
-  status: string | null;
-  survival_count: number | null;
-  reaction_count: number | null;
+  media_type: 'image' | 'gif' | 'video' | null;
+  status: string;
+  survival_count?: number;
+  reaction_count?: number;
   created_at: string;
-  author_id: string | null;
-  username: string | null;
-  display_name: string | null;
-  branch_id: string | null;
-  reply_count: number | null;
-  /** я участвовал в этой ветке (оставлял ответ) */
-  participated: boolean | null;
-  /** новых ответов в ветке после моего последнего */
-  new_after_me: number | null;
-  event_kind: string | null;
+  author_id?: string;
+  username?: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  branch_id?: string | null;
+  reply_count?: number;
+  participated?: boolean;
+  new_after_me?: number;
+  event_kind?: string | null;
 };

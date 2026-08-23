@@ -12,10 +12,14 @@ import { PushManager } from '@/components/push-manager';
 
 /** Главный экран: бегущее внимание + лента + композер закреплён внизу. */
 export default function FeedPage() {
-  const { wallet } = useWorld();
+  const { wallet, remainingMs } = useWorld();
   const [slots, setSlots] = useState<DbAttentionSlot[]>([]);
   const [showBuy, setShowBuy] = useState(false);
   const [feedKey, setFeedKey] = useState(0);
+
+  // progressive destruction: внимание исчезает за 3 мин до конца, композер — за 5
+  const showAttention = remainingMs > 3 * 60 * 1000;
+  const showComposer = remainingMs > 5 * 60 * 1000;
 
   useEffect(() => {
     let alive = true;
@@ -34,9 +38,10 @@ export default function FeedPage() {
     <div>
       <PushManager />
 
-      {/* ATTENTION FEED — рынок внимания */}
-      {slots.length > 0 && (
-        <div className="border-b border-rip-line bg-rip-panel/40">
+      {/* ATTENTION FEED — рынок внимания; sticky под шапкой, виден при скролле */}
+      {showAttention && slots.length > 0 && (
+        <div className="sticky z-20 border-b border-rip-line bg-rip-bg/95 backdrop-blur"
+          style={{ top: 'var(--rip-header-h, 48px)' }}>
           <div className="flex items-center justify-between px-3 pt-2">
             <span className="text-[10px] tracking-widest text-rip-warn">⚡ ВНИМАНИЕ</span>
             <button
@@ -63,10 +68,12 @@ export default function FeedPage() {
         <FeedList key={feedKey} />
       </div>
 
-      {/* КОМПОЗЕР — закреплён над нижней навигацией */}
-      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-xl z-30 border-t border-rip-line bg-rip-bg">
-        <Composer onPosted={() => setFeedKey((k) => k + 1)} />
-      </div>
+      {/* КОМПОЗЕР — закреплён над нижней навигацией; исчезает за 5 мин до конца */}
+      {showComposer && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-xl z-30 border-t border-rip-line bg-rip-bg">
+          <Composer onPosted={() => setFeedKey((k) => k + 1)} />
+        </div>
+      )}
 
       {showBuy && <AttentionBuy onClose={() => setShowBuy(false)} />}
     </div>

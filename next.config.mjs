@@ -7,6 +7,8 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' },
     ],
   },
+  // отключаем dev-индикатор NEXT (кнопка N) — не нужен пользователям
+  devIndicators: false,
 };
 
 export default nextConfig;

@@ -13,12 +13,16 @@ export async function PATCH(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Ошибка' }, { status: 400 });
   }
-  const { displayName, bio } = parsed.data;
+  const { displayName, bio, avatarUrl } = parsed.data;
 
   await q(
     `update profiles set display_name = coalesce($2, display_name), bio = coalesce($3, bio)
      where id = $1`,
     [user.id, displayName ?? null, bio ?? null]
   );
+  // avatarUrl: null = явно очистить, undefined = не трогать
+  if ('avatarUrl' in parsed.data) {
+    await q(`update profiles set avatar_url = $2 where id = $1`, [user.id, avatarUrl ?? null]);
+  }
   return NextResponse.json({ ok: true });
 }

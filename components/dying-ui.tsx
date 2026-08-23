@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useWorld } from '@/components/world-provider';
 import { formatCountdown } from '@/lib/phases';
@@ -15,6 +15,21 @@ import { apiGet } from '@/lib/api';
 export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: React.ReactNode }) {
   const { phase, remainingMs, season } = useWorld();
   const [notifCount, setNotifCount] = useState(0);
+  const headerRef = useRef<HTMLElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // измеряем высоту шапки, чтобы sticky-элементы (лента внимания) вставали ровно под ней
+  useEffect(() => {
+    const update = () => {
+      const h = headerRef.current?.offsetHeight ?? 0;
+      rootRef.current?.style.setProperty('--rip-header-h', `${h}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (headerRef.current) ro.observe(headerRef.current);
+    window.addEventListener('resize', update);
+    return () => { ro.disconnect(); window.removeEventListener('resize', update); };
+  }, []);
 
   // счётчик новых ответов на мои сообщения (для колокольчика)
   useEffect(() => {
@@ -34,18 +49,25 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
   const isDead = phase === 'death';
   const isFinal = phase === 'final';
   const isEmergency = phase === 'emergency';
+  const isCritical = phase === 'critical';
 
   const showCountdown = !isDead;
   const showNav = !isFinal && !isDead;
+  // progressive destruction
+  const showComposer = remainingMs > 5 * 60 * 1000 && !isDead;
+  const showAttention = remainingMs > 3 * 60 * 1000 && !isDead;
+  const showDm = remainingMs > 10 * 60 * 1000 && !isDead;
+  const showSecondary = remainingMs > 60 * 60 * 1000 && !isDead;
 
   const countdownTone = isFinal ? 'text-rip-blood animate-pulse-hard' : isEmergency ? 'text-rip-warn' : 'text-rip-text';
 
   return (
-    <div className={`min-h-dvh ${isFinal ? 'contrast-125' : ''}`}>
+    <div ref={rootRef} className={`min-h-dvh ${isFinal ? 'contrast-125' : ''}`}>
       {/* ШАПКА: COUNTDOWN — опущена от safe-area (dynamic island), sticky с отступом */}
       <AnimatePresence>
         {showCountdown && (
           <motion.header
+            ref={headerRef}
             exit={{ opacity: 0, y: -10 }}
             className={`sticky top-0 z-30 border-b border-rip-line bg-rip-bg/90 backdrop-blur px-4 pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 ${isFinal ? 'animate-pulse' : ''}`}
           >

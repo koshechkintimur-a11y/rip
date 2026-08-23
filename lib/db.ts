@@ -12,9 +12,15 @@ const g = globalThis as unknown as { __ripDb?: Queryable };
 
 /** Next.js 15.5+ в dev возвращает process.cwd() как URL — нормализуем в путь. */
 export function getCwd(): string {
-  const cwd: unknown = process.cwd();
+  const cwd = process.cwd();
   if (typeof cwd === 'string') return cwd;
-  if (cwd instanceof URL) return cwd.pathname;
+  if (typeof cwd === 'object' && cwd !== null) {
+    // Next 15.5 dev может возвращать URL-объект
+    const url = cwd as URL;
+    if (url.href && url.href.startsWith('file://')) {
+      return decodeURIComponent(url.pathname.replace(/^\/([a-zA-Z]:)/, '$1'));
+    }
+  }
   return String(cwd);
 }
 
