@@ -9,5 +9,6 @@ out/
 .vercel
 next-env.d.ts
 .ripdata/
+.ripdata-*/
 data/
 *.tsbuildinfo
