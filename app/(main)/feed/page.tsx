@@ -1,0 +1,74 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { AttentionFeed } from '@/components/attention-feed';
+import { Composer } from '@/components/composer';
+import { FeedList } from '@/components/feed';
+import { useWorld } from '@/components/world-provider';
+import { apiGet } from '@/lib/api';
+import type { DbAttentionSlot } from '@/lib/types';
+import { AttentionBuy } from '@/components/attention-buy';
+import { PushManager } from '@/components/push-manager';
+
+/** Главный экран: бегущее внимание + лента + композер закреплён внизу. */
+export default function FeedPage() {
+  const { wallet } = useWorld();
+  const [slots, setSlots] = useState<DbAttentionSlot[]>([]);
+  const [showBuy, setShowBuy] = useState(false);
+  const [feedKey, setFeedKey] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const d = await apiGet<{ slots: DbAttentionSlot[] }>('/api/attention');
+        if (alive) setSlots(d.slots || []);
+      } catch { /* тихо */ }
+    };
+    void load();
+    const id = setInterval(load, 12000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+
+  return (
+    <div>
+      <PushManager />
+
+      {/* ATTENTION FEED — рынок внимания */}
+      {slots.length > 0 && (
+        <div className="border-b border-rip-line bg-rip-panel/40">
+          <div className="flex items-center justify-between px-3 pt-2">
+            <span className="text-[10px] tracking-widest text-rip-warn">⚡ ВНИМАНИЕ</span>
+            <button
+              onClick={() => setShowBuy(true)}
+              className="text-[10px] text-rip-dim hover:text-rip-warn transition-colors"
+            >
+              купить место (20 монет) →
+            </button>
+          </div>
+          <AttentionFeed slots={slots} />
+        </div>
+      )}
+
+      {/* БАЛАНС */}
+      <div className="px-4 py-1.5 flex items-center justify-between text-[11px] text-rip-dim border-b border-rip-line/40">
+        <span>💀 {wallet?.balance ?? 0} монет</span>
+        <button onClick={() => setShowBuy(true)} className="hover:text-rip-warn transition-colors">
+          ⚡ продвинуть сообщение
+        </button>
+      </div>
+
+      {/* ЛЕНТА — отступ снизу, чтобы не пряталась за композером */}
+      <div className="pb-40">
+        <FeedList key={feedKey} />
+      </div>
+
+      {/* КОМПОЗЕР — закреплён над нижней навигацией */}
+      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-xl z-30 border-t border-rip-line bg-rip-bg">
+        <Composer onPosted={() => setFeedKey((k) => k + 1)} />
+      </div>
+
+      {showBuy && <AttentionBuy onClose={() => setShowBuy(false)} />}
+    </div>
+  );
+}
