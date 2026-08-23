@@ -12,12 +12,16 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const before = url.searchParams.get('before'); // ISO
-  const limit = Math.min(Number(url.searchParams.get('limit') || 30), 60);
+  const rawLimit = Number(url.searchParams.get('limit') ?? 30);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), 60) : 30;
 
   const season = await ensureWorldBirth();
+  if (!season || (season as any).status !== 'active') {
+    return NextResponse.json({ items: [], hasMore: false });
+  }
   const items = await q(
     `select
-       'message' as type, m.id, m.content, m.media_url, m.media_type, m.status,
+      'message' as type, m.id, m.content, m.media_url, m.media_type, m.status,
        m.survival_count::int, m.reaction_count::int, m.created_at, m.author_id,
        p.username, p.display_name, p.avatar_url, m.branch_id,
        m.repost_of_id,

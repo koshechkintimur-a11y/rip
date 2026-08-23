@@ -31,6 +31,8 @@ export async function POST(req: Request) {
 
   await q(`update users set password_hash = $1 where id = $2`, [hashPassword(password), token.user_id]);
   await q(`update password_reset_tokens set used_at = now() where id = $1`, [token.id]);
+  // отзываем старые сессии после reset
+  await q(`delete from sessions where user_id = $1`, [token.user_id]);
 
   return NextResponse.json({ ok: true, message: 'Пароль изменён' });
 }

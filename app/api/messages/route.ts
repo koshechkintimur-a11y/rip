@@ -20,12 +20,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Сообщение отклонено фильтром' }, { status: 400 });
   }
 
-  // мир: если сезона нет — рождение; если мёртв — писать нельзя
-  let season = await getLatestSeason();
-  if (!season) season = await ensureWorldBirth();
-  if ((season as any).status === 'ended') {
+  // мир: работаем ТОЛЬКО с активным сезоном; ended ≠ active world
+  const season = await ensureWorldBirth();
+  if ((season as any).status !== 'active') {
     return NextResponse.json({ error: 'Мир мёртв. Нажми CONTINUE, чтобы начать новый сезон.', code: 'world_dead' }, { status: 400 });
   }
+
+  // parent должен принадлежать ТЕКУЩЕМУ сезону и быть живым/легендарным
+  if (parentMessageId) {
+    const parent = await qOne(
+      `select id from messages where id = $1 and season_id = $2 and status in ('active','legendary')`,
+      [parentMessageId, (season as any).id]
+    );
+    if (!parent) {
+      return NextResponse.json({ error: 'Нельзя ответить на это сообщение' }, { status: 400 });
+    }
+  }
+
   const msg = await qOne(
     `insert into messages (author_id, season_id, content, media_url, media_type, parent_message_id, status)
      values ($1, $2, $3, $4, $5, $6, 'active') returning id, created_at`,
@@ -52,10 +63,13 @@ export async function PUT(req: Request) {
   );
   if (!original) return NextResponse.json({ error: 'Сообщение не найдено' }, { status: 404 });
 
-  let season = await getLatestSeason();
-  if (!season) season = await ensureWorldBirth();
-  if ((season as any).status === 'ended') {
+  let season = await ensureWorldBirth();
+  if ((season as any).status !== 'active') {
     return NextResponse.json({ error: 'Мир мёртв. Нажми CONTINUE, чтобы начать новый сезон.', code: 'world_dead' }, { status: 400 });
+  }
+  // репостить можно только живое/легендарное сообщение ТЕКУЩЕГО сезона
+  if (original.season_id !== (season as any).id || !['active', 'legendary'].includes(original.status)) {
+    return NextResponse.json({ error: 'Нельзя репостнуть это сообщение' }, { status: 400 });
   }
 
   // репост: только ссылка на оригинал, без копирования контента

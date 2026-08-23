@@ -25,5 +25,7 @@ export async function PATCH(req: Request) {
   }
 
   await q(`update users set password_hash = $1 where id = $2`, [hashPassword(newPassword), user.id]);
+  // отзываем ВСЕ старые сессии — украденный cookie не должен пережить смену пароля
+  await q(`delete from sessions where user_id = $1`, [user.id]);
   return NextResponse.json({ ok: true });
 }

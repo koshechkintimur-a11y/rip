@@ -66,12 +66,16 @@ async function main() {
   check('change password неверный текущий → 403', changePassWrong.status === 403, `status=${changePassWrong.status}`);
   const loginNew = await api('/api/auth/login', { method: 'POST', body: j({ email, password: 'pass456' }) });
   check('login после смены пароля', loginNew.status === 200, `status=${loginNew.status}`);
-  const cN = loginNew.cookie;
+  let cN = loginNew.cookie;
   const forgot = await api('/api/auth/forgot', { method: 'POST', body: j({ email }) });
   check('forgot (devCode)', forgot.status === 200 && !!forgot.data?.devCode, JSON.stringify(forgot.data));
   if (forgot.data?.devCode) {
     const reset = await api('/api/auth/reset', { method: 'POST', body: j({ code: forgot.data.devCode, password: 'pass789' }) });
     check('reset по devCode', reset.status === 200, JSON.stringify(reset.data));
+    // reset отзывает все сессии — нужен свежий login
+    const loginAfterReset = await api('/api/auth/login', { method: 'POST', body: j({ email, password: 'pass789' }) });
+    check('login после reset', loginAfterReset.status === 200, `status=${loginAfterReset.status}`);
+    cN = loginAfterReset.cookie;
   }
 
   // === FEED / MESSAGES ===
