@@ -38,6 +38,7 @@ export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, 
   const [error, setError] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pageSeq = useRef(0); // защита от race поллинга: применяем только последний ответ
 
   const mergeItems = useCallback((incoming: FeedItem[], replace: boolean) => {
     setItems((prev) => {
@@ -52,9 +53,11 @@ export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, 
   }, []);
 
   const loadPage = useCallback(async (before?: string) => {
+    const seq = ++pageSeq.current;
     const qs = before ? `?before=${encodeURIComponent(before)}&limit=${ITEMS_PER_PAGE}` : `?limit=${ITEMS_PER_PAGE}`;
     try {
       const data = await fetch(`/api/feed${qs}`).then((r) => r.json());
+      if (seq !== pageSeq.current) return; // устаревший ответ — игнорируем
       if (data.error) throw new Error(data.error);
       // Первая страница ВСЕГДА заменяет ленту: новые сообщения появляются,
       // погибшие (dead) исчезают без ручного refresh. Пагинация (before) — мержит в конец.
@@ -63,6 +66,7 @@ export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, 
       setHasMore(data.hasMore);
       setError(null);
     } catch (e: any) {
+      if (seq !== pageSeq.current) return;
       setError(e.message || 'Ошибка загрузки');
     } finally {
       setLoading(false);

@@ -24,20 +24,24 @@ export default function BranchPage() {
   const [seasonChanged, setSeasonChanged] = useState(false);
   const [showPromote, setShowPromote] = useState(false);
   const replyFileRef = useRef<HTMLInputElement>(null);
+  const loadSeq = useRef(0); // защита от race: применяем только последний ответ
 
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     try {
       const data = await apiGet<{ root: FeedItem | null; replies: FeedItem[]; season: any }>(
         `/api/messages/${id}`
       );
+      if (seq !== loadSeq.current) return; // пришёл устаревший ответ — игнорируем
       setRoot(data.root);
       setReplies(data.replies || []);
-      if (data.season && season && data.season.id !== season.id) setSeasonChanged(true);
+      if (data.season && season) setSeasonChanged(data.season.id !== season.id);
       setError(null);
     } catch (e: any) {
+      if (seq !== loadSeq.current) return;
       setError(e.message || 'Ошибка');
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [id, season]);
 
@@ -61,10 +65,11 @@ export default function BranchPage() {
     const content = replyText.trim();
     if (!content && !replyMedia) return;
     try {
-      // дропаем в ответ на конкретное сообщение (или в корень)
+      // ПЛОСКАЯ ветка: parent всегда root (id), replyTo — только визуальная пометка.
+      // Иначе ответ на reply (parent=reply) не попадёт в выборку (load смотрит parent=root).
       await apiPost('/api/messages', {
         content: content || '📷',
-        parentMessageId: replyTo?.id ?? id,
+        parentMessageId: id,
         mediaUrl: replyMedia?.url || null,
         mediaType: replyMedia?.type || null,
       });
@@ -103,10 +108,18 @@ export default function BranchPage() {
     </div>
   );
 
+  // защита от пустого экрана: API вернул root=null без ошибки
+  if (!loading && !root) return (
+    <div className="p-4">
+      <div className="border border-rip-line rounded-lg p-4 text-sm text-rip-dim">☠ Сообщение не найдено или умерло.</div>
+      <button onClick={() => router.push('/feed')} className="mt-3 text-xs text-rip-dim hover:text-rip-text">← на главную</button>
+    </div>
+  );
+
   return (
     <div>
       <button onClick={() => router.push('/feed')} className="px-4 pt-3 pb-1 text-xs text-rip-dim hover:text-rip-text">
-        ← чат
+        ← лента
       </button>
 
       {seasonChanged && (

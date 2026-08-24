@@ -16,6 +16,8 @@ export function MediaRenderer({ url, type, className = '' }: { url: string; type
         playsInline
         preload="metadata"
         className={`mt-1.5 max-h-60 rounded-md border border-rip-line w-full ${className}`}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
       >
         <source src={url} />
