@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AttentionFeed } from '@/components/attention-feed';
 import { Composer } from '@/components/composer';
 import { FeedList } from '@/components/feed';
+import { MessageModal } from '@/components/message-modal';
 import { useWorld } from '@/components/world-provider';
 import { AttentionBuy } from '@/components/attention-buy';
 import { PushManager } from '@/components/push-manager';
@@ -21,6 +22,8 @@ export default function FeedPage() {
   const [feedKey, setFeedKey] = useState(0);
   const [discusCount, setDiscusCount] = useState(0);
   const [discusFirstId, setDiscusFirstId] = useState<string | null>(null);
+  // модалка ветки из ленты внимания (state-based: лента остаётся смонтированной)
+  const [modalMessageId, setModalMessageId] = useState<string | null>(null);
 
   // единый источник состояния умирания (внимание исчезает за 3 мин, композер — за 5)
   const deathState = getDeathState(remainingMs);
@@ -57,7 +60,10 @@ export default function FeedPage() {
               купить место (20 монет) →
             </button>
           </div>
-          <AttentionFeed slots={slots} />
+          <AttentionFeed
+            slots={slots}
+            onOpenMessage={(messageId) => setModalMessageId(messageId)}
+          />
         </div>
       )}
 
@@ -89,6 +95,14 @@ export default function FeedPage() {
       )}
 
       {showBuy && <AttentionBuy onClose={() => setShowBuy(false)} />}
+
+      {/* Модалка ветки из ленты внимания — поверх ленты, с тем же MessageThread */}
+      {modalMessageId && (
+        <MessageModal
+          messageId={modalMessageId}
+          onClose={() => setModalMessageId(null)}
+        />
+      )}
     </div>
   );
 }

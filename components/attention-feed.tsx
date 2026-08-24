@@ -1,27 +1,34 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import type { DbAttentionSlot } from '@/lib/types';
 
-/** Лента внимания: карточки-крики, плавно движущиеся справа налево. Клик по карточке → ветка сообщения. */
-export function AttentionFeed({ slots }: { slots: DbAttentionSlot[] }) {
-  const router = useRouter();
+/**
+ * Лента внимания: карточки-крики, движущиеся справа налево.
+ * Клик по карточке с message_id → onOpenMessage(id) — родитель открывает
+ * MessageModal с полной веткой (тот же MessageThread, что у /message/[id]).
+ *
+ * Дублирование: массив дублируется [...slots, ...slots] ТОЛЬКО для бесшовного
+ * цикла marquee (translateX -50%). При 1-2 слотах дубль виден как «два
+ * одинаковых поста» — поэтому цикл включается только от 3 слотов, иначе
+ * карточки рендерятся один раз (без анимации-петли).
+ */
+export function AttentionFeed({ slots, onOpenMessage }: {
+  slots: DbAttentionSlot[];
+  onOpenMessage: (messageId: string) => void;
+}) {
   if (slots.length === 0) return null;
 
-  // дублируем для бесшовного цикла (translateX -50%)
-  const doubled = [...slots, ...slots];
-
-  const open = (s: DbAttentionSlot) => {
-    if (s.message_id) router.push(`/message/${s.message_id}`);
-  };
+  // бесшовный цикл требует 2 копии; при <3 слотах дубль выглядит как баг — не циклируем
+  const canLoop = slots.length >= 3;
+  const items = canLoop ? [...slots, ...slots] : slots;
 
   return (
     <div className="relative overflow-hidden">
-      <div className="flex gap-2 w-max animate-marquee py-3 px-1">
-        {doubled.map((s, i) => (
+      <div className={`flex gap-2 w-max py-3 px-1 ${canLoop ? 'animate-marquee' : ''}`}>
+        {items.map((s, i) => (
           <button
             key={`${s.id}-${i}`}
-            onClick={() => open(s)}
+            onClick={() => { if (s.message_id) onOpenMessage(s.message_id); }}
             className={`shrink-0 w-52 bg-rip-panel border border-rip-warn/30 rounded-xl overflow-hidden flex flex-col text-left ${s.message_id ? 'cursor-pointer active:scale-[0.98] transition-transform' : 'cursor-default'}`}
           >
             {s.media_url && (

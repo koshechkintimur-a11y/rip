@@ -30,7 +30,13 @@ export async function GET(_req: Request, ctx: Ctx) {
     `select m.id, m.content, m.media_url, m.media_type, m.status, m.survival_count, m.reaction_count,
             m.created_at, m.author_id, p.username, p.display_name, p.avatar_url, m.branch_id
      from messages m join profiles p on p.id = m.author_id
-     where m.parent_message_id = $1
+     where m.branch_id = (
+       select coalesce(
+         (select branch_id from messages where id = $1),
+         (select id from branches where root_message_id = $1)
+       )
+     )
+       and m.id <> $1
      order by m.created_at asc`,
     [id]
   );
