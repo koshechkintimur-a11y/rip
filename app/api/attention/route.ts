@@ -49,8 +49,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Мир мёртв. Нажми CONTINUE, чтобы начать новый сезон.', code: 'world_dead' }, { status: 400 });
     }
     const msg = await qOne(
-      `insert into messages (author_id, season_id, content, media_url, media_type, status)
-       values ($1, $2, $3, $4, $5, 'active') returning id`,
+      `insert into messages (author_id, season_id, content, media_url, media_type, status, feed_hidden)
+       values ($1, $2, $3, $4, $5, 'active', true) returning id`,
       [user.id, (season as any).id, content, mediaUrl || null, mediaType || null]
     );
     if (msg) targetMessageId = msg.id;

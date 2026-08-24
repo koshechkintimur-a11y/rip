@@ -52,6 +52,7 @@ export async function GET(req: Request) {
      left join profiles rp on rp.id = ro.author_id
      where m.season_id = $1 and m.parent_message_id is null
        and m.status in ('active','legendary')
+       and m.feed_hidden = false
        and ($2::timestamptz is null or m.created_at < $2)
      union all
      select
