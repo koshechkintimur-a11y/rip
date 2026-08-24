@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useWorld } from '@/components/world-provider';
 import { formatCountdown, getDeathState } from '@/lib/phases';
 import { motion, AnimatePresence } from 'framer-motion';
-import { apiGet } from '@/lib/api';
 
 /**
  * Dying UI — интерфейс, который постепенно умирает вместе с сезоном.
@@ -14,7 +13,6 @@ import { apiGet } from '@/lib/api';
  */
 export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: React.ReactNode }) {
   const { phase, remainingMs, season } = useWorld();
-  const [notifCount, setNotifCount] = useState(0);
   const headerRef = useRef<HTMLElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -30,21 +28,6 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
     window.addEventListener('resize', update);
     return () => { ro.disconnect(); window.removeEventListener('resize', update); };
   }, []);
-
-  // счётчик новых ответов на мои сообщения (для колокольчика)
-  useEffect(() => {
-    if (phase === 'death') return;
-    let alive = true;
-    const load = async () => {
-      try {
-        const d = await apiGet<{ notifications: Array<{ is_new: boolean }> }>('/api/notifications');
-        if (alive) setNotifCount((d.notifications || []).filter((n) => n.is_new).length);
-      } catch { /* тихо */ }
-    };
-    void load();
-    const id = setInterval(load, 15000);
-    return () => { alive = false; clearInterval(id); };
-  }, [phase]);
 
   const isDead = phase === 'death';
   const isFinal = phase === 'final';
@@ -82,14 +65,7 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
                   <Link href="/seasons" className="text-rip-blood hover:text-rip-warn transition-colors">СЕЗОН #{season.number} ЗАВЕРШАЕТСЯ…</Link>
                 )}
               </div>
-              <Link href="/notifications" className="relative w-8 text-right shrink-0" title="Ответы на мои сообщения">
-                <span className="text-base leading-none">🔔</span>
-                {notifCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-rip-blood text-white text-[9px] flex items-center justify-center">
-                    {notifCount > 9 ? '9+' : notifCount}
-                  </span>
-                )}
-              </Link>
+              <span className="w-8 shrink-0" />
             </div>
             {isFinal && (
               <p className="text-center text-[10px] text-rip-blood mt-1 tracking-wider leading-tight">

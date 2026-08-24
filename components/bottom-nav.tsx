@@ -32,10 +32,19 @@ function UserIcon({ active }: { active: boolean }) {
   );
 }
 
-/** Нижняя навигация: Главная · Личка · Профиль (SVG-иконки + safe-area). */
+function BellIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? '#e8e8ea' : '#8b8b95'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+    </svg>
+  );
+}
+
+/** Нижняя навигация: Главная · Личка · Уведомления · Профиль (SVG-иконки + safe-area). */
 export function BottomNav({ username }: { username: string }) {
   const pathname = usePathname();
-  const { unreadDm } = useWorld();
+  const { unreadDm, notifCount } = useWorld();
 
   const item = (href: string, icon: React.ReactNode, label: string, badge?: number) => {
     const active = pathname === href || pathname.startsWith(href + '/');
@@ -59,11 +68,12 @@ export function BottomNav({ username }: { username: string }) {
 
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl border-t border-rip-line bg-rip-bg/95 backdrop-blur z-40 grid grid-cols-3"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl border-t border-rip-line bg-rip-bg/95 backdrop-blur z-40 grid grid-cols-4"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {item('/feed', <HomeIcon active={pathname === '/feed'} />, 'Чат')}
       {item('/dm', <MailIcon active={pathname.startsWith('/dm')} />, 'Личка', unreadDm)}
+      {item('/notifications', <BellIcon active={pathname.startsWith('/notifications')} />, 'Уведомления', notifCount)}
       {item('/profile', <UserIcon active={pathname.startsWith('/profile')} />, 'Профиль')}
     </nav>
   );

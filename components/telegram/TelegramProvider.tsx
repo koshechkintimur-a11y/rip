@@ -49,6 +49,17 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         if (tg && tg.initData) {
           if (!alive) return;
           clearInterval(iv);
+          // разворачиваем Mini App на весь экран (по умолчанию Telegram открывает
+          // плавающее окно, которое пользователь может растягивать)
+          try {
+            tg.ready?.();
+            tg.expand?.();
+            // iOS 16.4+: полноэкранный режим без плавающего окна
+            if (typeof tg.requestFullscreen === 'function') tg.requestFullscreen();
+            tg.setBackgroundColor?.('#0a0a0c');
+            tg.setHeaderColor?.('#0a0a0c');
+            tg.disableVerticalSwipes?.();
+          } catch { /* не критично */ }
           setCtx({
             isTelegram: true,
             platform: tg.platform || 'unknown',

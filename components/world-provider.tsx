@@ -24,6 +24,7 @@ type WorldState = {
   aliveCount: number;
   myAlive: number;
   unreadDm: number;
+  notifCount: number;
   loading: boolean;
   refresh: () => Promise<void>;
   continueToNextSeason: () => Promise<boolean>;
@@ -38,6 +39,7 @@ export function WorldProvider({ children }: { children: React.ReactNode }) {
   const [aliveCount, setAliveCount] = useState(0);
   const [myAlive, setMyAlive] = useState(0);
   const [unreadDm, setUnreadDm] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
   const [now, setNow] = useState(0); // 0 на сервере → избегаем hydration mismatch
   const [loading, setLoading] = useState(true);
   const refreshing = useRef(false);
@@ -79,6 +81,20 @@ export function WorldProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [refresh]);
 
+  // счётчик новых ответов на мои сообщения (бейдж в нижней навигации)
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const d = await apiGet<{ notifications: Array<{ is_new: boolean }> }>('/api/notifications');
+        if (alive) setNotifCount((d.notifications || []).filter((n) => n.is_new).length);
+      } catch { /* тихо */ }
+    };
+    void load();
+    const id = setInterval(load, 15000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+
   // локальный тик для countdown (только когда now инициализирован)
   useEffect(() => {
     if (now === 0) return;
@@ -112,7 +128,7 @@ export function WorldProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WorldContext.Provider
-      value={{ season, phase, remainingMs, wallet, stats, aliveCount, myAlive, unreadDm, loading, refresh, continueToNextSeason }}
+      value={{ season, phase, remainingMs, wallet, stats, aliveCount, myAlive, unreadDm, notifCount, loading, refresh, continueToNextSeason }}
     >
       {children}
     </WorldContext.Provider>
