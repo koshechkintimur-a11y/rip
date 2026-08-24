@@ -29,7 +29,7 @@ export function PushManager() {
 
       // регистрация SW
       try {
-        await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.register(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/sw.js`);
       } catch { /* тихо */ }
 
       // iOS: нужна установка на Home Screen

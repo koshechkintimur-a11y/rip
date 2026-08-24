@@ -49,6 +49,7 @@ export const attentionSchema = z.object({
   minutes: z.number().int().min(10).max(120),
   mediaUrl,
   mediaType: z.enum(['image', 'gif', 'video']).optional().nullable(),
+  messageId: z.string().uuid().optional().nullable(),
 });
 
 export const profileSchema = z.object({

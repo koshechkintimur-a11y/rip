@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTelegram } from '@/components/telegram/TelegramProvider';
 
@@ -14,10 +14,11 @@ export function TelegramBootstrap() {
   const { isTelegram, initData } = useTelegram();
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (!isTelegram) return; // не в Telegram — ничего не делаем
-    if (status !== 'idle') return;
+    if (!isTelegram || startedRef.current) return;
+    startedRef.current = true; // строго один запуск, не зависящий от ре-рендеров
 
     let alive = true;
     setStatus('loading');
@@ -36,7 +37,7 @@ export function TelegramBootstrap() {
           return;
         }
         setStatus('done');
-        // deep link: start_param=m_<id> / thread_ / profile_ / ref_
+        // deep link: start_param=m_<id> / profile_<id>
         const sp = new URLSearchParams(initData).get('start_param');
         if (sp) {
           if (sp.startsWith('m_')) router.replace(`/message/${sp.slice(2)}`);
@@ -53,7 +54,7 @@ export function TelegramBootstrap() {
       }
     })();
     return () => { alive = false; };
-  }, [isTelegram, initData, status, router]);
+  }, [isTelegram, initData, router]);
 
   if (!isTelegram || status === 'done') return null;
   if (status === 'loading') {

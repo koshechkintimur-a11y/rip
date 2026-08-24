@@ -6,9 +6,15 @@ import { useWorld } from '@/components/world-provider';
 import { motion } from 'framer-motion';
 
 /** Покупка места в ленте внимания: текст + слоты + длительность + фото. */
-export function AttentionBuy({ onClose }: { onClose: () => void }) {
+export function AttentionBuy({ onClose, initialContent, messageId }: {
+  onClose: () => void;
+  /** предзаполнить текст (при продвижении сообщения из ветки) */
+  initialContent?: string;
+  /** привязать слот к сообщению — карточка внимания откроет ветку по клику */
+  messageId?: string;
+}) {
   const { refresh } = useWorld();
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState(initialContent || '');
   const [slots, setSlots] = useState(1);
   const [minutes, setMinutes] = useState(10);
   const [media, setMedia] = useState<{ url: string; type: 'image' | 'gif' } | null>(null);
@@ -42,6 +48,7 @@ export function AttentionBuy({ onClose }: { onClose: () => void }) {
         minutes,
         mediaUrl: media?.url || null,
         mediaType: media?.type || null,
+        messageId: messageId || null,
       });
       setDone(true);
       void refresh();

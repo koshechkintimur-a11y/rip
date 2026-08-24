@@ -12,7 +12,6 @@ import { MediaRenderer } from '@/components/media-renderer';
 import { Avatar } from '@/components/avatar';
 import { LinkPreview } from '@/components/link-preview';
 import { ReactButton } from '@/components/react-button';
-import { MessageModal } from '@/components/message-modal';
 
 const ITEMS_PER_PAGE = 30;
 
@@ -37,7 +36,6 @@ export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, 
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [openItem, setOpenItem] = useState<FeedItem | null>(null);
   const seen = useRef(new Set<string>());
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -141,7 +139,7 @@ export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, 
 
       <div className="space-y-0">
         {items.map((it) => (
-          <FeedRow key={it.id} item={it} phase={phase} onOpen={() => setOpenItem(it)} />
+          <FeedRow key={it.id} item={it} phase={phase} />
         ))}
       </div>
 
@@ -152,17 +150,13 @@ export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, 
         </div>
       )}
 
-      {/* Модалка сообщения: полный просмотр + действия */}
-      {openItem && (
-        <MessageModal item={openItem} onClose={() => setOpenItem(null)} />
-      )}
     </div>
   );
 }
 
 /** Плавающая иконка справа: прыжок по веткам, где я участвовал; подсвечивается при новых ответах. */
 
-function FeedRow({ item, phase, onOpen }: { item: FeedItem; phase: string; onOpen: () => void }) {
+function FeedRow({ item, phase, onOpen }: { item: FeedItem; phase: string; onOpen?: () => void }) {
   const router = useRouter();
 
   if (item.type === 'system') {
@@ -179,7 +173,7 @@ function FeedRow({ item, phase, onOpen }: { item: FeedItem; phase: string; onOpe
   return (
     <div
       className={`py-3 cursor-pointer hover:bg-rip-panel/30 transition-colors ${isDead ? 'opacity-40' : ''} ${critical ? 'group/fade' : ''}`}
-      onClick={onOpen}
+      onClick={() => router.push(`/message/${item.id}`)}
     >
       <div className="flex items-start gap-2.5">
         <button onClick={(e) => { e.stopPropagation(); router.push(`/profile/${item.username}`); }} className="shrink-0">

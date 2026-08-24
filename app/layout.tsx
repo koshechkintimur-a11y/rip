@@ -21,8 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru">
       <head>
-        {/* Telegram Mini App SDK */}
-        <script src="https://telegram.org/js/telegram-web-app.js" async />
+        {/* Telegram Mini App SDK — self-hosted (telegram.org блокируется в РФ) */}
+        <script src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/telegram-web-app.js`} />
       </head>
       <body className="min-h-dvh bg-rip-bg text-rip-text antialiased">
         <TelegramProvider>{children}</TelegramProvider>

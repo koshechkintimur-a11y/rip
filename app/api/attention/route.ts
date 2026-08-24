@@ -34,15 +34,15 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Ошибка' }, { status: 400 });
   }
-  const { content, slots, minutes, mediaUrl, mediaType } = parsed.data;
+  const { content, slots, minutes, mediaUrl, mediaType, messageId } = parsed.data;
   if (containsProfanity(content)) {
     return NextResponse.json({ error: 'Текст отклонён фильтром' }, { status: 400 });
   }
 
   // атомарная покупка в одной транзакции (блокировка кошелька = защита от double-spend)
   const res = await qOne<{ purchase_attention: { total_cost: number; ends_at: string } }>(
-    `select purchase_attention($1, $2, $3, $4, $5, $6)`,
-    [user.id, content, slots, minutes, mediaUrl || null, mediaType || null]
+    `select purchase_attention($1, $2, $3, $4, $5, $6, $7)`,
+    [user.id, content, slots, minutes, mediaUrl || null, mediaType || null, messageId || null]
   );
   if (!res) return NextResponse.json({ error: 'Не удалось купить внимание' }, { status: 500 });
   const purchase = res.purchase_attention;

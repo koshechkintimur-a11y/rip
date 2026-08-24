@@ -8,8 +8,8 @@ import { formatDate, plural } from '@/lib/phases';
 type OtherProfile = {
   profile: { id: string; username: string; display_name: string | null; avatar_url: string | null; bio: string | null; created_at: string };
   stats: { total: number; alive: number; dead: number; legendary: number; branches: number; in_branches: number };
-  survived: Array<{ id: string; content: string; status: string; survival_count: number; created_at: string }>;
-  dead: Array<{ id: string; content: string; status: string; survival_count: number; created_at: string }>;
+  survived: Array<{ id: string; content: string; media_url?: string | null; status: string; survival_count: number; created_at: string }>;
+  dead: Array<{ id: string; content: string; media_url?: string | null; status: string; survival_count: number; created_at: string }>;
   myBranches: Array<{ id: string; content: string; created_at: string; reply_count: number }>;
 };
 
@@ -108,7 +108,13 @@ export default function UserProfilePage() {
               {formatDate(m.created_at)}
               {m.status === 'legendary' && <span className="text-rip-gold ml-2">⭐ {m.survival_count}</span>}
             </div>
-            <p className={`text-sm mt-0.5 ${m.status === 'dead' ? 'line-through decoration-rip-dim/40 text-rip-dim' : ''}`}>{m.content}</p>
+            {m.content && <p className={`text-sm mt-0.5 ${m.status === 'dead' ? 'line-through decoration-rip-dim/40 text-rip-dim' : ''}`}>{m.content}</p>}
+            {m.media_url && (
+              <div className="mt-1.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={m.media_url} alt="" className="max-h-32 rounded-md border border-rip-line" loading="lazy" />
+              </div>
+            )}
           </div>
         ))}
         {tab === 'alive' && data.survived.length === 0 && <p className="py-8 text-center text-xs text-rip-dim">Ничего не выжило… пока.</p>}

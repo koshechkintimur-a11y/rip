@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
+import { AttentionBuy } from '@/components/attention-buy';
 import { plural, formatTime } from '@/lib/phases';
 import type { FeedItem } from '@/lib/types';
 
@@ -18,8 +19,11 @@ export default function BranchPage() {
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
+  const [replyMedia, setReplyMedia] = useState<{ url: string; type: 'image' | 'gif' } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [seasonChanged, setSeasonChanged] = useState(false);
+  const [showPromote, setShowPromote] = useState(false);
+  const replyFileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -55,18 +59,38 @@ export default function BranchPage() {
 
   const sendReply = async () => {
     const content = replyText.trim();
-    if (!content) return;
+    if (!content && !replyMedia) return;
     try {
       // дропаем в ответ на конкретное сообщение (или в корень)
       await apiPost('/api/messages', {
-        content,
+        content: content || '📷',
         parentMessageId: replyTo?.id ?? id,
+        mediaUrl: replyMedia?.url || null,
+        mediaType: replyMedia?.type || null,
       });
       setReplyText('');
       setReplyTo(null);
+      setReplyMedia(null);
       void load();
     } catch (e: any) {
       setError(e.message || 'Не отправилось');
+    }
+  };
+
+  const onReplyFile = async (f: File | undefined) => {
+    if (!f) return;
+    if (!f.type.startsWith('image/')) {
+      setError('Нужна картинка (PNG/JPEG/WebP/GIF/HEIC)');
+      return;
+    }
+    const form = new FormData();
+    form.append('file', f);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: form }).then((r) => r.json());
+      if (res.error) throw new Error(res.error);
+      setReplyMedia({ url: res.url, type: res.mediaType });
+    } catch (e: any) {
+      setError(e?.message || 'Файл не загрузился');
     }
   };
 
@@ -97,6 +121,7 @@ export default function BranchPage() {
           isRoot
           mine={myId !== null && root.author_id === myId}
           onDrop={(username) => setReplyTo({ id: root.id, username })}
+          onPromote={() => setShowPromote(true)}
         />
       )}
 
@@ -127,6 +152,15 @@ export default function BranchPage() {
           </div>
         )}
         <div className="flex items-center gap-2">
+          {replyMedia && (
+            <div className="relative shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={replyMedia.url} alt="" className="h-9 w-9 rounded border border-rip-line object-cover" />
+              <button className="absolute -top-1.5 -right-1.5 bg-rip-blood text-white rounded-full w-4 h-4 text-[10px] leading-none" onClick={() => setReplyMedia(null)}>✕</button>
+            </div>
+          )}
+          <button onClick={() => replyFileRef.current?.click()} className="text-rip-dim hover:text-rip-text text-lg shrink-0" title="Прикрепить фото">🖼</button>
+          <input ref={replyFileRef} type="file" accept="image/*,.heic,.heif" hidden onChange={(e) => void onReplyFile(e.target.files?.[0])} />
           <input
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
@@ -142,16 +176,26 @@ export default function BranchPage() {
         </div>
       </div>
       {error && <p className="px-4 pb-2 text-xs text-rip-blood">⚠️ {error}</p>}
+
+      {/* продвинуть сообщение в ленту внимания */}
+      {showPromote && root && (
+        <AttentionBuy
+          onClose={() => setShowPromote(false)}
+          initialContent={root.content || undefined}
+          messageId={root.id}
+        />
+      )}
     </div>
   );
 }
 
 /** Одно сообщение в ветке: подсветка своих, бейдж «дискус», кнопка дропа. */
-function BranchMessage({ item, isRoot, mine, onDrop }: {
+function BranchMessage({ item, isRoot, mine, onDrop, onPromote }: {
   item: FeedItem;
   isRoot?: boolean;
   mine: boolean;
   onDrop: (username: string) => void;
+  onPromote?: () => void;
 }) {
   const isDead = item.status === 'dead';
   const isLegendary = item.status === 'legendary' || (item.survival_count ?? 0) >= 5;
@@ -179,6 +223,14 @@ function BranchMessage({ item, isRoot, mine, onDrop }: {
       >
         ↓ дропнуть в ответ
       </button>
+      {isRoot && onPromote && (
+        <button
+          onClick={onPromote}
+          className="ml-3 mt-1 text-[11px] text-rip-warn hover:text-rip-warn/80 transition-colors"
+        >
+          ⚡ продвинуть в внимание
+        </button>
+      )}
     </div>
   );
 }
