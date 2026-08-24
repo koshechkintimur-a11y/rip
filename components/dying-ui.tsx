@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useWorld } from '@/components/world-provider';
+import { useTelegram } from '@/components/telegram/TelegramProvider';
 import { formatCountdown, getDeathState } from '@/lib/phases';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -13,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
  */
 export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: React.ReactNode }) {
   const { phase, remainingMs, season } = useWorld();
+  const { isTelegram } = useTelegram();
   const headerRef = useRef<HTMLElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +51,10 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
           <motion.header
             ref={headerRef}
             exit={{ opacity: 0, y: -10 }}
-            className={`sticky top-0 z-30 border-b border-rip-line bg-rip-bg/90 backdrop-blur px-4 pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 ${isFinal ? 'animate-pulse' : ''}`}
+            className={`sticky top-0 z-30 border-b border-rip-line bg-rip-bg/90 backdrop-blur px-4 pb-2 ${isFinal ? 'animate-pulse' : ''}`}
+            style={{ paddingTop: isTelegram
+              ? 'calc(env(safe-area-inset-top, 0px) + 40px)' // в Telegram fullscreen кнопки X/⋯ перекрывают верх
+              : 'calc(env(safe-area-inset-top, 0px) + 6px)' }}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] text-rip-dim tracking-widest shrink-0">RIP</span>
