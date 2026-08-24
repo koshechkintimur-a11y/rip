@@ -11,11 +11,12 @@ MVP-гипотеза: *возвращаются ли люди в мир, кот�
 - **Frontend**: Next.js 15 (App Router) + TypeScript (strict) + Tailwind + Framer Motion
 - **Backend**: чистый PostgreSQL. Без Supabase/Firebase.
   - Локальная разработка: **PGlite** (Postgres в WASM, без установки, данные в `./.ripdata`)
-  - Прод: любой `DATABASE_URL` (VPS, Neon, RDS)
-- **Auth**: свои сессии — scrypt + HttpOnly cookie `rip_session`
+  - Прод: PGlite-файл на VPS (или любой `DATABASE_URL` — Neon, RDS)
+- **Auth**: свои сессии — scrypt + HttpOnly cookie `rip_session`; вход через **Telegram** (HMAC initData, авто-создание юзера)
 - **Realtime**: поллинг (3.5 сек), сервер авторитативный
 - **PWA**: manifest + service worker (`public/sw.js`) + Web Push (VAPID, `web-push`)
 - **Медиа**: загрузка на диск (`data/uploads`), раздача через `/api/media/*`
+- **Telegram Mini App**: self-hosted SDK (`public/telegram-web-app.js`, telegram.org заблокирован в РФ), продакшн на `https://golubot.ru/rip/` (nginx + PM2)
 
 ## Архитектура
 
@@ -38,7 +39,13 @@ MVP-гипотеза: *возвращаются ли люди в мир, кот�
 | `lib/push/send.ts` | Web Push с автопрунингом протухших подписок |
 | `lib/phases.ts` | Фазы сезона A–F + русская плюрализация countdown |
 | `app/api/*` | 20 REST-роутов |
-| `app/(main)/*` | Страницы: feed, message, dm, profile, admin |
+| `app/(main)/*` | Страницы: feed, message, dm, profile, notifications, seasons, admin |
+| `components/telegram/*` | TelegramProvider (ожидание SDK, fullscreen, expand), TelegramBootstrap (авторизация initData) |
+| `components/message-thread.tsx` | Общая ветка сообщения: root, ответы, поллинг, дроп с медиа, черепок, репост, продвижение. Используется и страницей `/message/[id]`, и модалкой из ленты внимания |
+| `components/message-modal.tsx` | Модалка ветки поверх ленты (из ленты внимания) — тот же MessageThread |
+| `db/0009_telegram_auth.sql` | Вход через Telegram: auth_identities, связка tg_id ↔ user |
+| `db/0010_attention_message.sql` | purchase_attention с message_id — карточка внимания открывает ветку |
+| `db/0011_feed_hidden.sql` | Крики внимания скрыты из чата (feed_hidden) |
 
 ### Фазы сезона (Dying UI)
 
@@ -88,7 +95,10 @@ node scripts/smoke.mjs   # смоук: сезон, кошелёк, покупк�
 | `CRON_SECRET` | Защита `/api/cron/tick` |
 | `ADMIN_EMAILS` | Доступ к админке (или `is_test_user=true` в БД) |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Push. Генерация: `node scripts/gen-vapid.mjs` |
-| `GIF_PROVIDER_KEY` | (опционально) внешний GIF-провайдер; пока вставка URL |
+| `GIF_PROVIDER_KEY` | (опционально) внешний GIF-провайдер (klipy) |
+| `TELEGRAM_BOT_TOKEN` | Токен бота для Telegram Mini App (проверка initData) |
+| `BASE_PATH` / `NEXT_PUBLIC_BASE_PATH` | Прод: `/rip` (nginx проксирует по префиксу). Локально — пусто |
+| `NEXT_PUBLIC_BOT_URL` | (опционально) ссылка на бота для Menu Button |
 
 ## Деплой
 
@@ -105,6 +115,20 @@ DATABASE_URL=postgres://... node scripts/migrate.mjs
 node_modules/.bin/next start -p 3000
 # + nginx reverse proxy + cron: curl "https://host/api/cron/tick?secret=..." каждую минуту
 ```
+
+## Telegram Mini App
+
+Продакшн: бот **@rip_social_network_bot** → Menu Button `https://golubot.ru/rip/` (nginx + PM2, VPS).
+
+Особенности (важные уроки из боевой эксплуатации):
+
+- **Self-hosted SDK**: `public/telegram-web-app.js` — telegram.org заблокирован в РФ, SDK грузится с собственного домена **синхронно** в `app/layout.tsx`
+- **Ожидание SDK**: `TelegramProvider` опрашивает `window.Telegram.WebApp` каждые 50 мс до 4 с (`resolved`), корневая страница не уводит на логин до решения провайдера
+- **Fullscreen**: `ready()`, `expand()`, `requestFullscreen()`, `disableVerticalSwipes()` — апка открывается на весь экран
+- **Хеддер**: в Telegram отступ `safe-area + 40px` — кнопки X/⋯ Telegram не перекрывают countdown
+- **nginx (обязательно)**: `location = /api/webhook` → tm-bridge **ДО** `location /api/` (иначе умирает бот); `/api/` → rewrite в `/rip/api/`; `/rip/` + `/rip` → 3002 без среза префикса (basePath `/rip`); `client_max_body_size 35m` (фото с iPhone 2-5 МБ); no-cache для `/rip/` (WebView Telegram кэширует агрессивно)
+- **Авторизация**: `POST /api/auth/telegram` — HMAC-SHA256 от initData, авто-создание юзера (users → profile → wallet 1000), cookie `rip_session`
+- **Очистка кэша при обновлениях**: WebView держит старый HTML/чанки — после деплоя надо полностью закрыть Mini App (смахнуть) или очистить кэш Telegram
 
 ## Админ-панель (test controls)
 
