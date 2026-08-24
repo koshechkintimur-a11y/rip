@@ -7,9 +7,12 @@ import { useWorld } from '@/components/world-provider';
 import { formatCountdown, plural } from '@/lib/phases';
 import { apiPost } from '@/lib/api';
 import type { FeedItem } from '@/lib/types';
+import { Composer } from '@/components/composer';
 import { MediaRenderer } from '@/components/media-renderer';
 import { Avatar } from '@/components/avatar';
 import { LinkPreview } from '@/components/link-preview';
+import { ReactButton } from '@/components/react-button';
+import { MessageModal } from '@/components/message-modal';
 
 const ITEMS_PER_PAGE = 30;
 
@@ -26,7 +29,7 @@ async function repostMessage(messageId: string): Promise<boolean> {
   }
 }
 
-export function FeedList() {
+export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, firstId: string | null) => void }) {
   const { season, phase } = useWorld();
   const router = useRouter();
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -34,6 +37,7 @@ export function FeedList() {
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openItem, setOpenItem] = useState<FeedItem | null>(null);
   const seen = useRef(new Set<string>());
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -93,6 +97,15 @@ export function FeedList() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [hasMore, loading, refreshing, items, loadPage]);
 
+  // сообщаем наверх: новые ответы в дискуссиях, где я участвовал
+  useEffect(() => {
+    if (!onDiscusChange) return;
+    const withNew = items.filter((it) => it.type === 'message' && (it.new_after_me ?? 0) > 0);
+    const total = withNew.reduce((s, it) => s + (it.new_after_me ?? 0), 0);
+    const first = withNew[0]?.id ?? null;
+    onDiscusChange(total, first);
+  }, [items, onDiscusChange]);
+
   if (loading && items.length === 0) {
     return (
       <div className="space-y-4 p-4">
@@ -116,7 +129,6 @@ export function FeedList() {
 
   return (
     <div className="px-3 pb-4">
-      <DiscusJump items={items} />
 
       <div className="mb-2 flex items-center justify-between px-1">
         <span className="text-xs text-rip-dim">
@@ -129,7 +141,7 @@ export function FeedList() {
 
       <div className="space-y-0">
         {items.map((it) => (
-          <FeedRow key={it.id} item={it} phase={phase} />
+          <FeedRow key={it.id} item={it} phase={phase} onOpen={() => setOpenItem(it)} />
         ))}
       </div>
 
@@ -139,47 +151,18 @@ export function FeedList() {
           — здесь начинается конец сезона —
         </div>
       )}
+
+      {/* Модалка сообщения: полный просмотр + действия */}
+      {openItem && (
+        <MessageModal item={openItem} onClose={() => setOpenItem(null)} />
+      )}
     </div>
   );
 }
 
 /** Плавающая иконка справа: прыжок по веткам, где я участвовал; подсвечивается при новых ответах. */
-function DiscusJump({ items }: { items: FeedItem[] }) {
-  const router = useRouter();
-  // ветки, где я участвовал
-  const myDiscs = items.filter((it) => it.type === 'message' && it.participated);
-  // ветки с новыми ответами после моего последнего
-  const withNew = myDiscs.filter((it) => (it.new_after_me ?? 0) > 0);
-  const totalNew = withNew.reduce((s, it) => s + (it.new_after_me ?? 0), 0);
 
-  if (myDiscs.length === 0) return null;
-
-  const jump = () => {
-    // сначала прыгаем в ветки с новыми ответами, потом в остальные
-    const target = withNew.length > 0 ? withNew[0] : myDiscs[0];
-    if (target) router.push(`/message/${target.id}`);
-  };
-
-  return (
-    <button
-      onClick={jump}
-      title={`${myDiscs.length} дискуссий · ${totalNew} новых ответов`}
-      className={`fixed right-3 bottom-40 z-30 w-11 h-11 rounded-full border flex items-center justify-center text-lg transition-all
-        ${withNew.length > 0
-          ? 'border-rip-warn bg-rip-warn/15 text-rip-warn animate-pulse'
-          : 'border-rip-line bg-rip-panel/90 text-rip-dim hover:text-rip-text hover:border-rip-warn'}`}
-    >
-      💬
-      {totalNew > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rip-blood text-white text-[10px] flex items-center justify-center">
-          {totalNew > 9 ? '9+' : totalNew}
-        </span>
-      )}
-    </button>
-  );
-}
-
-function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
+function FeedRow({ item, phase, onOpen }: { item: FeedItem; phase: string; onOpen: () => void }) {
   const router = useRouter();
 
   if (item.type === 'system') {
@@ -189,13 +172,14 @@ function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
   const isDead = item.status === 'dead' || item.status === 'archived';
   const isLegendary = item.status === 'legendary' || (item.survival_count ?? 0) >= 5;
   const replyCount = item.reply_count ?? 0;
+  const repostCount = item.repost_count ?? 0;
   const critical = phase === 'emergency' || phase === 'final';
   const newAfterMe = item.new_after_me ?? 0;
 
   return (
     <div
       className={`py-3 cursor-pointer hover:bg-rip-panel/30 transition-colors ${isDead ? 'opacity-40' : ''} ${critical ? 'group/fade' : ''}`}
-      onClick={() => router.push(`/message/${item.id}`)}
+      onClick={onOpen}
     >
       <div className="flex items-start gap-2.5">
         <button onClick={(e) => { e.stopPropagation(); router.push(`/profile/${item.username}`); }} className="shrink-0">
@@ -223,9 +207,11 @@ function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
             </div>
           ) : (
             <>
-              <p className={`mt-0.5 text-[15px] leading-snug break-words ${isDead ? 'line-through decoration-rip-dim/40' : ''}`}>
-                {item.content}
-              </p>
+              {item.content && (
+                <p className={`mt-0.5 text-[15px] leading-snug break-words ${isDead ? 'line-through decoration-rip-dim/40' : ''}`}>
+                  {item.content}
+                </p>
+              )}
               {!item.media_url && item.content && <LinkPreview text={item.content} />}
               {item.media_url && (
                 <MediaRenderer url={item.media_url} type={item.media_type} />
@@ -248,34 +234,12 @@ function FeedRow({ item, phase }: { item: FeedItem; phase: string }) {
               title="Репостнуть"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              {repostCount > 0 && <span>{repostCount}</span>}
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function ReactButton({ messageId, initialCount }: { messageId: string; initialCount: number }) {
-  const [count, setCount] = useState(initialCount);
-  const [active, setActive] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  const toggle = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const res = await apiPost<{ reaction_count: number; active: boolean }>('/api/messages/react', { messageId });
-      setCount(res.reaction_count);
-      setActive(res.active);
-    } catch { /* молча */ }
-    setBusy(false);
-  };
-
-  return (
-    <button className={`hover:text-rip-blood transition-colors ${active ? 'text-rip-blood' : ''}`} onClick={() => void toggle()}>
-      💀 {count}
-    </button>
   );
 }
 

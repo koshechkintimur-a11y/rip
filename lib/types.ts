@@ -111,6 +111,7 @@ export type FeedItem = {
   repost_media_type?: 'image' | 'gif' | 'video' | null;
   repost_username?: string | null;
   reply_count?: number;
+  repost_count?: number;
   participated?: boolean;
   new_after_me?: number;
   event_kind?: string | null;

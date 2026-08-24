@@ -6,7 +6,12 @@ import { apiPost } from '@/lib/api';
 import { GifPicker } from '@/components/gif-picker';
 
 /** Композер: текст + картинка + GIF + видео. */
-export function Composer({ onPosted }: { onPosted?: () => void }) {
+export function Composer({ onPosted, discusCount, onDiscusClick }: {
+  onPosted?: () => void;
+  /** кол-во новых ответов в дискуссиях, где я участвовал (0 = не показывать) */
+  discusCount?: number;
+  onDiscusClick?: () => void;
+}) {
   const { refresh } = useWorld();
   const [text, setText] = useState('');
   const [media, setMedia] = useState<{ url: string; type: 'image' | 'gif' | 'video' } | null>(null);
@@ -92,6 +97,18 @@ export function Composer({ onPosted }: { onPosted?: () => void }) {
           maxLength={500}
         />
         <div className="flex items-center gap-1 shrink-0">
+          {discusCount !== undefined && discusCount > 0 && (
+            <button
+              onClick={onDiscusClick}
+              className="relative px-1.5 py-1 text-rip-warn hover:text-rip-warn/80"
+              title="Новые ответы в дискуссиях"
+            >
+              💬
+              <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-rip-blood text-white text-[9px] flex items-center justify-center font-bold">
+                {discusCount > 9 ? '9+' : discusCount}
+              </span>
+            </button>
+          )}
           <button className="px-1.5 py-1 text-rip-dim hover:text-rip-text" title="Картинка" onClick={() => fileRef.current?.click()}>
             🖼
           </button>

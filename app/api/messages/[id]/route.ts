@@ -11,11 +11,16 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const { id } = await ctx.params;
 
+  // один запрос вместо трёх: root + его сезон + счётчик ответов + счётчик репостов
   const root = await qOne(
     `select m.id, m.content, m.media_url, m.media_type, m.status, m.survival_count, m.reaction_count,
-            m.created_at, m.author_id, p.username, p.display_name, m.branch_id,
-            (select b.reply_count from branches b where b.root_message_id = m.id) as reply_count
-     from messages m join profiles p on p.id = m.author_id
+            m.created_at, m.author_id, p.username, p.display_name, p.avatar_url, m.branch_id,
+            (select b.reply_count from branches b where b.root_message_id = m.id) as reply_count,
+            (select count(*) from messages r where r.repost_of_id = m.id)::int as repost_count,
+            s.id as season_id, s.number as season_number
+     from messages m
+     join profiles p on p.id = m.author_id
+     left join seasons s on s.id = m.season_id
      where m.id = $1`,
     [id]
   );
@@ -23,14 +28,12 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const replies = await q(
     `select m.id, m.content, m.media_url, m.media_type, m.status, m.survival_count, m.reaction_count,
-            m.created_at, m.author_id, p.username, p.display_name, m.branch_id
+            m.created_at, m.author_id, p.username, p.display_name, p.avatar_url, m.branch_id
      from messages m join profiles p on p.id = m.author_id
      where m.parent_message_id = $1
      order by m.created_at asc`,
     [id]
   );
 
-  const season = await qOne(`select s.id from seasons s join messages m on m.season_id = s.id where m.id = $1`, [id]);
-
-  return NextResponse.json({ root, replies, season });
+  return NextResponse.json({ root, replies, season: root.season_id ? { id: root.season_id, number: root.season_number } : null });
 }

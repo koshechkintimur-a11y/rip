@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Чёрный фон -->
+  <rect width="512" height="512" rx="112" fill="#000000"/>
+
+  <!-- Мягкая тень под надгробьем -->
+  <ellipse cx="256" cy="410" rx="150" ry="16" fill="#141414"/>
+
+  <!-- Надгробье -->
+  <path d="M156 410 L156 220 A100 100 0 0 1 356 220 L356 410 Z" fill="#2E2E2E"/>
+
+  <!-- Внутренняя гравированная рамка -->
+  <path d="M178 402 L178 226 A78 78 0 0 1 334 226 L334 402 Z"
+        fill="none" stroke="#4B4B4B" stroke-width="4"/>
+
+  <!-- Надпись RIP -->
+  <text x="256" y="286" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="76" font-weight="700" letter-spacing="6"
+        fill="#C8C8C8">RIP</text>
+
+  <!-- Линия земли -->
+  <line x1="86" y1="410" x2="426" y2="410"
+        stroke="#1C1C1C" stroke-width="8" stroke-linecap="round"/>
+</svg>

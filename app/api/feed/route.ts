@@ -28,6 +28,7 @@ export async function GET(req: Request) {
        ro.content as repost_content, ro.media_url as repost_media_url,
        ro.media_type as repost_media_type, rp.username as repost_username,
        (select b.reply_count from branches b where b.root_message_id = m.id) as reply_count,
+      (select count(*) from messages r where r.repost_of_id = m.id)::int as repost_count,
        exists (
          select 1 from branches bb
          join messages a on a.branch_id = bb.id
@@ -58,7 +59,7 @@ export async function GET(req: Request) {
        null::int, null::int, s.created_at, null::uuid,
        null::text, null::text, null::text, null::uuid,
        null::uuid, null::text, null::text, null::text, null::text,
-       null::int, null::boolean, null::int,
+       null::int, null::int, null::boolean, null::int,
        s.kind as event_kind
      from system_events s
      where s.season_id = $1 and ($2::timestamptz is null or s.created_at < $2)
