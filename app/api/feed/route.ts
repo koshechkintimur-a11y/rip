@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { q } from '@/lib/db';
+import { q, qOne } from '@/lib/db';
 import { ensureWorldBirth } from '@/lib/season/engine';
+import { buildPersonalFeed } from '@/lib/survival-engine';
 
 export const dynamic = 'force-dynamic';
 
-/** Единая лента: сообщения + системные события, курсорная пагинация. */
+/** Единая лента: сообщения + системные события, курсорная пагинация.
+ *  ?personal=1 — Survival Engine v1 (персональный ranking, 70/20/10, diversity). */
 export async function GET(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
@@ -14,11 +16,25 @@ export async function GET(req: Request) {
   const before = url.searchParams.get('before'); // ISO
   const rawLimit = Number(url.searchParams.get('limit') ?? 30);
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), 60) : 30;
+  const personal = url.searchParams.get('personal') === '1';
 
   const season = await ensureWorldBirth();
   if (!season || (season as any).status !== 'active') {
     return NextResponse.json({ items: [], hasMore: false });
   }
+
+  // Survival Engine: персональный ranking
+  if (personal) {
+    const waveAt = await qOne<{ next_wave: string | null }>(
+      `select (last_reset_at + interval '24 hours') as next_wave
+       from seasons where status = 'active' order by number desc limit 1`
+    );
+    const nowMs = Date.now();
+    const waveAtMs = waveAt?.next_wave ? new Date(waveAt.next_wave).getTime() : null;
+    const res = await buildPersonalFeed(user.id, (season as any).id, limit, nowMs, waveAtMs);
+    return NextResponse.json({ items: res.items, hasMore: res.hasMore, engine: 'survival-v1' });
+  }
+
   const items = await q(
     `select
       'message' as type, m.id, m.content, m.media_url, m.media_type, m.status,
