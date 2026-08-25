@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
+import { rateLimit, tooMany } from '@/lib/moderation/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+  if (!rateLimit(`link:${user.id}`, 30, 60_000)) return tooMany();
 
   const url = new URL(req.url);
   const target = url.searchParams.get('url') || '';

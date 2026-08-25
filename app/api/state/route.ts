@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { q, qOne } from '@/lib/db';
-import { ensureWorldBirth, getLatestSeason, runSeasonDeath } from '@/lib/season/engine';
+import { ensureWorldBirth, getLatestSeason } from '@/lib/season/engine';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,14 +10,9 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
-  // СЕРВЕР авторитетен: если активный сезон просрочен — объявляем смерть здесь же
-  // (не ждём cron/админку). Клиент только читает результат.
+  // SEC-011: GET не мутирует. Смерть сезона объявляется только в cron/админке.
   let season = await getLatestSeason();
   if (!season) season = await ensureWorldBirth();
-  if ((season as any).status === 'active' && new Date((season as any).ends_at).getTime() <= Date.now()) {
-    await runSeasonDeath();
-    season = await getLatestSeason();
-  }
 
   const seasonId = (season as any).id;
 

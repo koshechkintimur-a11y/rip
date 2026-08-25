@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { loginSchema } from '@/lib/validation';
 import { verifyPassword, createSession, sessionCookieOptions, SESSION_COOKIE } from '@/lib/auth';
 import { qOne } from '@/lib/db';
-import { rateLimit, tooMany } from '@/lib/moderation/rate-limit';
+import { rateLimit, tooMany, clientIp } from '@/lib/moderation/rate-limit';
 
 export async function POST(req: Request) {
   // защита от перебора пароля: по IP и по email
-  const ip = req.headers.get('x-forwarded-for') || 'anon';
+  const ip = clientIp(req);
   if (!rateLimit(`login:${ip}`, 10, 60_000)) return tooMany();
   const body = await req.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);

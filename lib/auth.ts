@@ -11,7 +11,8 @@ export function hashPassword(password: string): string {
   return `${salt}:${hash}`;
 }
 
-export function verifyPassword(password: string, stored: string): boolean {
+export function verifyPassword(password: string, stored: string | null): boolean {
+  if (!stored) return false; // SEC-003: telegram-юзеры (password_hash=null) — не 500, а 401
   const [salt, hash] = stored.split(':');
   if (!salt || !hash) return false;
   const candidate = crypto.scryptSync(password, salt, 64);

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { getMediaStorage } from '@/lib/media/storage';
+import { rateLimit, tooMany } from '@/lib/moderation/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -25,6 +26,7 @@ const MAX_SIZE = {
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+  if (!rateLimit(`upload:${user.id}`, 20, 60_000)) return tooMany(); // SEC-007
 
   const form = await req.formData();
   const file = form.get('file') as File | null;

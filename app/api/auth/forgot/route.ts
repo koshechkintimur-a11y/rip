@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createHash, randomBytes } from 'crypto';
 import { q, qOne } from '@/lib/db';
 import { sendMail } from '@/lib/mail';
-import { rateLimit, tooMany } from '@/lib/moderation/rate-limit';
+import { rateLimit, tooMany, clientIp } from '@/lib/moderation/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  * POST /api/auth/forgot { email } → письмо со ссылкой /reset-password?code=...
  */
 export async function POST(req: Request) {
-  if (!rateLimit(`forgot:${req.headers.get('x-forwarded-for') || 'anon'}`, 3, 60_000)) return tooMany();
+  if (!rateLimit(`forgot:${clientIp(req)}`, 3, 60_000)) return tooMany();
 
   const body = await req.json().catch(() => null);
   const email = String(body?.email || '').toLowerCase().trim();

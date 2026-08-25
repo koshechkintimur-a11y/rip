@@ -61,6 +61,13 @@ export async function POST(req: Request) {
   // Если слот не привязан к существующему сообщению — создаём сообщение из крика,
   // чтобы карточка внимания открывала полноценную ветку (message_id не null).
   let targetMessageId = messageId || null;
+  // SEC-016: продвигать можно только СВОЁ сообщение
+  if (targetMessageId) {
+    const owner = await qOne(`select author_id from messages where id = $1`, [targetMessageId]);
+    if (!owner || owner.author_id !== user.id) {
+      return NextResponse.json({ error: 'Это не твоё сообщение' }, { status: 400 });
+    }
+  }
   if (!targetMessageId) {
     const season = await ensureWorldBirth();
     if ((season as any).status !== 'active') {

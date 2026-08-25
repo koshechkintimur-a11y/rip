@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { hashPassword } from '@/lib/auth';
 import { q, qOne } from '@/lib/db';
-import { rateLimit, tooMany } from '@/lib/moderation/rate-limit';
+import { rateLimit, tooMany, clientIp } from '@/lib/moderation/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  * POST /api/auth/reset { code, password }
  */
 export async function POST(req: Request) {
-  if (!rateLimit(`reset:${req.headers.get('x-forwarded-for') || 'anon'}`, 5, 60_000)) return tooMany();
+  if (!rateLimit(`reset:${clientIp(req)}`, 5, 60_000)) return tooMany();
 
   const body = await req.json().catch(() => null);
   const code = String(body?.code || '');

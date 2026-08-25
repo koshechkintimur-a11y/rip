@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { validateTelegramInitData, suggestUsername, TelegramUser } from '@/lib/telegram';
 import { createSession, sessionCookieOptions, SESSION_COOKIE } from '@/lib/auth';
-import { q, qOne } from '@/lib/db';
-import { rateLimit, tooMany } from '@/lib/moderation/rate-limit';
+import { q, qOne, withTransaction } from "@/lib/db";
+import { rateLimit, tooMany, clientIp } from '@/lib/moderation/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
  * через auth_identities и выдаёт обычную rip_session.
  */
 export async function POST(req: Request) {
-  const ip = req.headers.get('x-forwarded-for') || 'anon';
+  const ip = clientIp(req);
   if (!rateLimit(`tg:${ip}`, 20, 60_000)) return tooMany();
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -52,54 +52,57 @@ export async function POST(req: Request) {
     userId = identity.user_id;
   } else {
     // 2. новый пользователь: создаём через тот же pipeline (users → profiles → wallet-триггер)
-    const isTaken = async (u: string) => {
-      const clash = await qOne(`select id from profiles where username = $1`, [u]);
-      return !!clash;
-    };
-    // предложенный ник: от пользователя (onboarding) или из Telegram
-    const username = requestedUsername
-      ? (await isTaken(requestedUsername) ? await suggestUsername(requestedUsername, isTaken) : requestedUsername)
-      : await suggestUsername(tgUser.username, isTaken);
+    // SEC-012: всё в одной транзакции — нет orphan-записей при падении
+    const created = await withTransaction(async () => {
+      const isTaken = async (u: string) => {
+        const clash = await qOne(`select id from profiles where username = $1`, [u]);
+        return !!clash;
+      };
+      // предложенный ник: от пользователя (onboarding) или из Telegram
+      const username = requestedUsername
+        ? (await isTaken(requestedUsername) ? await suggestUsername(requestedUsername, isTaken) : requestedUsername)
+        : await suggestUsername(tgUser.username, isTaken);
 
-    const email = tgId ? `tg_${tgId}@telegram.rip` : null; // технический уникальный email
-    const newUser = await qOne<{ id: string }>(
-      `insert into users (email, password_hash) values ($1, null) returning id`,
-      [email]
-    );
-    if (!newUser) return NextResponse.json({ error: 'Не удалось создать аккаунт' }, { status: 500 });
+      const email = tgId ? `tg_${tgId}@telegram.rip` : null; // технический уникальный email
+      const newUser = await qOne<{ id: string }>(
+        `insert into users (email, password_hash) values ($1, null) returning id`,
+        [email]
+      );
+      if (!newUser) throw new Error('user_create_failed');
 
-    const profile = await qOne<{ id: string }>(
-      `insert into profiles (id, username, display_name, avatar_url) values ($1, $2, $2, $3) returning id`,
-      [newUser.id, username, tgUser.photo_url || null]
-    );
-    if (!profile) {
-      await q(`delete from users where id = $1`, [newUser.id]);
-      return NextResponse.json({ error: 'Не удалось создать профиль' }, { status: 500 });
-    }
+      const profile = await qOne<{ id: string }>(
+        `insert into profiles (id, username, display_name, avatar_url) values ($1, $2, $2, $3) returning id`,
+        [newUser.id, username, tgUser.photo_url || null]
+      );
+      if (!profile) throw new Error('profile_create_failed');
 
-    await q(
-      `insert into auth_identities (user_id, provider, provider_user_id, metadata) values ($1, 'telegram', $2, $3)`,
-      [newUser.id, tgId, JSON.stringify({
-        username: tgUser.username || null,
-        first_name: tgUser.first_name || null,
-        last_name: tgUser.last_name || null,
-        photo_url: tgUser.photo_url || null,
-      })]
-    );
+      await q(
+        `insert into auth_identities (user_id, provider, provider_user_id, metadata) values ($1, 'telegram', $2, $3)`,
+        [newUser.id, tgId, JSON.stringify({
+          username: tgUser.username || null,
+          first_name: tgUser.first_name || null,
+          last_name: tgUser.last_name || null,
+          photo_url: tgUser.photo_url || null,
+        })]
+      );
 
-    // реферал из start_param=ref_XXX
-    if (startParam.startsWith('ref_')) {
-      const refCode = startParam.slice(4);
-      const referrer = await qOne(`select id from users where id::text = $1`, [refCode]);
-      if (referrer && referrer.id !== newUser.id) {
-        await q(
-          `insert into referrals (referrer_id, referred_id) values ($1, $2) on conflict do nothing`,
-          [referrer.id, newUser.id]
-        );
+      // реферал из start_param=ref_XXX
+      if (startParam.startsWith('ref_')) {
+        const refCode = startParam.slice(4);
+        const referrer = await qOne(`select id from users where id::text = $1`, [refCode]);
+        if (referrer && referrer.id !== newUser.id) {
+          await q(
+            `insert into referrals (referrer_id, referred_id) values ($1, $2) on conflict do nothing`,
+            [referrer.id, newUser.id]
+          );
+        }
       }
-    }
 
-    userId = newUser.id;
+      return newUser.id;
+    }).catch(() => null);
+    if (!created) return NextResponse.json({ error: 'Не удалось создать аккаунт' }, { status: 500 });
+
+    userId = created;
   }
 
   const token = await createSession(userId);

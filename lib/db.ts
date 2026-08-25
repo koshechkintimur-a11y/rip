@@ -63,6 +63,38 @@ export async function execSql(sql: string): Promise<void> {
   }
 }
 
+/**
+ * Транзакция: атомарная последовательность запросов.
+ * PGlite — один коннект, поэтому begin/commit через тот же инстанс;
+ * внутри fn используем q()/qOne() как обычно.
+ */
+export async function withTransaction<T>(fn: () => Promise<T>): Promise<T> {
+  const db = getDb();
+  if (db instanceof PGlite) {
+    await (db as any).exec('begin');
+    try {
+      const res = await fn();
+      await (db as any).exec('commit');
+      return res;
+    } catch (e) {
+      await (db as any).exec('rollback').catch(() => {});
+      throw e;
+    }
+  }
+  const client = await (db as Pool).connect();
+  try {
+    await client.query('begin');
+    const res = await fn();
+    await client.query('commit');
+    return res;
+  } catch (e) {
+    await client.query('rollback').catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 export function getDbInstance() {
   return getDb();
 }

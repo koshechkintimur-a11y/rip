@@ -23,7 +23,7 @@ export type TelegramInitData = {
  * (HMAC-SHA256("WebAppData", bot_token)), сравнение с hash.
  * Возвращает распарсенные данные или null при невалидной подписи/просрочке.
  */
-export function validateTelegramInitData(initData: string, botToken: string, maxAgeSec = 86400): TelegramInitData | null {
+export function validateTelegramInitData(initData: string, botToken: string, maxAgeSec = 3600): TelegramInitData | null {
   if (!initData || !botToken) return null;
 
   const params = new URLSearchParams(initData);

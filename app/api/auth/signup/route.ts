@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { signupSchema, containsProfanity } from '@/lib/validation';
 import { hashPassword, createSession, sessionCookieOptions, SESSION_COOKIE } from '@/lib/auth';
-import { q, qOne } from '@/lib/db';
-import { rateLimit, tooMany } from '@/lib/moderation/rate-limit';
+import { q, qOne, withTransaction } from '@/lib/db';
+import { rateLimit, tooMany, clientIp } from '@/lib/moderation/rate-limit';
 
 export async function POST(req: Request) {
-  if (!rateLimit(`signup:${req.headers.get('x-forwarded-for') || 'anon'}`, 5, 60_000)) return tooMany();
+  if (!rateLimit(`signup:${clientIp(req)}`, 5, 60_000)) return tooMany();
 
   try {
     return await handle(req);
@@ -33,23 +33,22 @@ async function handle(req: Request) {
   if (emailClash) return NextResponse.json({ error: 'Email уже зарегистрирован' }, { status: 409 });
 
   // транзакция: users + profiles (триггер выдаст 1000 монет)
-  const user = await qOne<{ id: string }>(
-    `insert into users (email, password_hash) values ($1, $2) returning id`,
-    [email, hashPassword(password)]
-  );
-  if (!user) return NextResponse.json({ error: 'Ошибка создания пользователя' }, { status: 500 });
+  return withTransaction(async () => {
+    const user = await qOne<{ id: string }>(
+      `insert into users (email, password_hash) values ($1, $2) returning id`,
+      [email, hashPassword(password)]
+    );
+    if (!user) return NextResponse.json({ error: 'Ошибка создания пользователя' }, { status: 500 });
 
-  const profile = await qOne<{ id: string }>(
-    `insert into profiles (id, username, display_name) values ($1, $2, $2) returning id`,
-    [user.id, username]
-  );
-  if (!profile) {
-    await q(`delete from users where id = $1`, [user.id]); // откат
-    return NextResponse.json({ error: 'Ошибка создания профиля' }, { status: 500 });
-  }
+    const profile = await qOne<{ id: string }>(
+      `insert into profiles (id, username, display_name) values ($1, $2, $2) returning id`,
+      [user.id, username]
+    );
+    if (!profile) return NextResponse.json({ error: 'Ошибка создания профиля' }, { status: 500 });
 
-  const token = await createSession(user.id);
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
-  return res;
+    const token = await createSession(user.id);
+    const res = NextResponse.json({ ok: true });
+    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
+    return res;
+  });
 }

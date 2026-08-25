@@ -73,11 +73,18 @@ export async function PUT(req: Request) {
   }
 
   // репост: только ссылка на оригинал, без копирования контента
-  const msg = await qOne(
-    `insert into messages (author_id, season_id, content, media_url, media_type, repost_of_id, status)
-     values ($1, $2, '', null, null, $3, 'active') returning id, created_at`,
-    [user.id, (season as any).id, originalId]
-  );
-
-  return NextResponse.json({ ok: true, message: msg });
+  // SEC-005: unique (author_id, repost_of_id) — повторный репост → 409
+  try {
+    const msg = await qOne(
+      `insert into messages (author_id, season_id, content, media_url, media_type, repost_of_id, status)
+       values ($1, $2, '', null, null, $3, 'active') returning id, created_at`,
+      [user.id, (season as any).id, originalId]
+    );
+    return NextResponse.json({ ok: true, message: msg });
+  } catch (e: any) {
+    if (e?.code === '23505' || String(e?.message || '').includes('uq_messages_repost')) {
+      return NextResponse.json({ error: 'Ты уже репостил это сообщение' }, { status: 409 });
+    }
+    throw e;
+  }
 }

@@ -14,6 +14,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Ошибка' }, { status: 400 });
   }
   const { displayName, bio, avatarUrl } = parsed.data;
+  if (avatarUrl && !avatarUrl.startsWith("/api/media/") && !avatarUrl.startsWith("https://")) return NextResponse.json({ error: "Некорректный URL аватара" }, { status: 400 });
 
   await q(
     `update profiles set display_name = coalesce($2, display_name), bio = coalesce($3, bio)
