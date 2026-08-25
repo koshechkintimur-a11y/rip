@@ -41,7 +41,7 @@ export function LightboxProvider({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 flex flex-col h-dvh w-full overflow-hidden"
+            className="fixed inset-0 z-[400] bg-black/95 flex flex-col h-dvh w-full overflow-hidden"
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
             onClick={close} // тап по любому месту (включая фото) закрывает
