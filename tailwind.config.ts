@@ -6,21 +6,28 @@ const config: Config = {
     extend: {
       colors: {
         rip: {
-          bg: '#0a0a0c',
-          panel: '#121216',
-          panel2: '#17171d',
-          line: '#26262e',
-          text: '#e8e8ea',
-          dim: '#8b8b95',
+          // пепельный графит (концепт 2031): чуть теплее и глубже, чем чистый чёрный
+          bg: '#0b0b0d',
+          panel: '#15151a',
+          panel2: '#1b1b21',
+          line: '#24242b',
+          text: '#ececea',
+          dim: '#9a9aa3',
+          faint: '#5c5c66',
           accent: '#e5e5e5',
+          // ржавчина — тёплый акцент «закат, а не траур»
+          rust: '#d97f4f',
+          // костяной — тёплый пепельно-белый для заголовков/имён
+          bone: '#d6d2c6',
           blood: '#ff2d40',
           warn: '#ffb020',
           green: '#3ddc84',
-          gold: '#ffd166',
+          gold: '#d9b45c',
         },
       },
       fontFamily: {
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        serif: ['var(--font-serif)', 'Georgia', 'serif'],
       },
       animation: {
         'pulse-hard': 'pulseHard 0.9s ease-in-out infinite',

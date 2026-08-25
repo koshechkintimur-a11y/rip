@@ -9,9 +9,10 @@ import { apiPost } from '@/lib/api';
 import type { FeedItem } from '@/lib/types';
 import { Composer } from '@/components/composer';
 import { MediaRenderer } from '@/components/media-renderer';
+import { SurvivalChance } from '@/components/survival-chance';
 import { Avatar } from '@/components/avatar';
-import { LinkPreview } from '@/components/link-preview';
 import { ReactButton } from '@/components/react-button';
+import { LinkPreview } from '@/components/link-preview';
 
 const ITEMS_PER_PAGE = 30;
 
@@ -195,6 +196,7 @@ function FeedRow({ item, phase, onOpen }: { item: FeedItem; phase: string; onOpe
             <span className="text-xs text-rip-dim/60">
               {new Date(item.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
             </span>
+            {!isDead && !item.repost_of_id && <SurvivalChance item={item} legendary={isLegendary} />}
           </div>
           {item.repost_of_id ? (
             // РЕПОСТ: только рамка с оригиналом, без дублирования контента

@@ -61,7 +61,7 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
               <div className={`text-center font-mono ${countdownTone} ${isFinal ? 'text-base' : isEmergency ? 'text-sm' : 'text-xs'} tracking-wider`}>
                 {season && remainingMs > 0 && (
                   <>
-                    <Link href="/seasons" className="text-rip-dim hover:text-rip-warn transition-colors" title="История сезонов">СЕЗОН #{season.number}</Link>
+                    <Link href="/seasons" className="text-rip-dim hover:text-rip-warn transition-colors" title="История сезонов">СЕЗОН #{season.number}{season.name ? ` «${season.name}»` : ''}</Link>
                     <span className="mx-1 text-rip-dim">·</span>
                     ОСТАЛОСЬ {formatCountdown(remainingMs)}
                   </>

@@ -61,13 +61,16 @@ export function DeathScreen() {
               {Number(stats?.dead_messages ?? 0).toLocaleString('ru-RU')} сообщений погибло.
               {' '}{Number(stats?.survived_total ?? 0).toLocaleString('ru-RU')} выжило.
             </p>
+            <p className="mt-3 text-rip-dim/60 text-xs italic">
+              Интернет всё помнит. Этот — нет.
+            </p>
           </motion.div>
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: showRip ? 1 : 0 }}
             transition={{ duration: 1.2 }}
-            className="text-5xl font-black tracking-[0.3em] text-rip-text mt-10"
+            className="rip-serif text-5xl font-black tracking-[0.3em] text-rip-text mt-10"
           >
             YOU RIP
           </motion.p>

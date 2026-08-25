@@ -12,6 +12,7 @@ export type Season = {
   ends_at: string;
   duration_seconds: number;
   last_reset_at: string | null;
+  name: string | null;
   created_at: string;
 };
 
