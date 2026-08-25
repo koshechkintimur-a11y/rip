@@ -10,9 +10,11 @@ import { plural, formatDate } from '@/lib/phases';
 type MyProfile = {
   user: { username: string; email: string; display_name: string | null; bio: string | null; avatar_url: string | null; is_test_user: boolean };
   wallet: { balance: number };
-  stats: { total: number; alive: number; dead: number; legendary: number; branches: number; in_branches: number };
+  stats: { total: number; alive: number; dead: number; legendary: number; branches: number; in_branches: number; reactions: number };
   messages: Array<{ id: string; content: string; status: string; survival_count: number; created_at: string; died_at: string | null }>;
   saved: Array<{ message_id: string; content: string; label: string }>;
+  season: { first_season: number | null; seasons_count: number };
+  topPost: { content: string; survival_count: number } | null;
 };
 
 /** Мой профиль: статистика жизни в RIP + архивы + настройки. */
@@ -80,12 +82,12 @@ export default function MyProfilePage() {
 
   return (
     <div>
-      {/* ШАПКА — как в концепте: аватар, имя (serif), @tag + сезоны, цитата */}
-      <div className="px-4 pt-6 pb-4 border-b border-rip-line flex flex-col items-center text-center">
+      {/* ШАПКА — 1-в-1 как в концепте: аватар, имя, tag, статистика, bio, кнопка */}
+      <div className="px-4 pt-6 pb-5 border-b border-rip-line flex flex-col items-center text-center">
         <button
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="relative w-[72px] h-[72px] rounded-full bg-rip-panel border border-rip-line overflow-hidden flex items-center justify-center text-2xl hover:border-rip-rust transition-colors shrink-0"
+          className="relative w-[72px] h-[72px] rounded-full bg-rip-panel border border-rip-line overflow-hidden flex items-center justify-center text-[26px] hover:border-rip-rust transition-colors shrink-0"
           title={avatarUrl ? 'Сменить аватар' : 'Загрузить аватар'}
         >
           {avatarUrl ? (
@@ -97,19 +99,30 @@ export default function MyProfilePage() {
           {uploading && <span className="absolute inset-0 bg-black/50 flex items-center justify-center text-[10px]">…</span>}
         </button>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => void onAvatarFile(e.target.files?.[0])} />
-        <h1 className="rip-serif text-xl mt-2.5 text-rip-bone">{user.display_name || user.username}</h1>
-        <p className="text-[11px] text-rip-faint mt-1 tracking-wide">@{user.username} · в мире · сезон #{season?.number ?? '?'}</p>
+
+        <h1 className="rip-serif text-lg mt-2.5 text-rip-bone leading-tight">{user.display_name || user.username}</h1>
+        <p className="text-[10px] text-rip-faint mt-1 tracking-[0.1em]">
+          @{user.username} · в мире с сезона #{data.season?.first_season ?? '?'} · {data.season?.seasons_count ?? 1} {plural(data.season?.seasons_count ?? 1, ['сезон', 'сезона', 'сезонов'])}
+        </p>
+
+        {/* статистика: ПОСТОВ / ЖИВЫ / ЛЕГЕНДА / ЧЕРЕПКОВ — как в концепте */}
+        <div className="flex gap-[26px] mt-[18px] font-mono">
+          <div className="text-center"><div className="text-[17px] text-rip-text leading-tight">{stats.total}</div><div className="text-[9px] text-rip-faint mt-[3px] tracking-[0.1em]">ПОСТОВ</div></div>
+          <div className="text-center"><div className="text-[17px] text-rip-text leading-tight">{stats.alive}</div><div className="text-[9px] text-rip-faint mt-[3px] tracking-[0.1em]">ЖИВЫ</div></div>
+          <div className="text-center"><div className="text-[17px] text-rip-gold leading-tight">{stats.legendary}</div><div className="text-[9px] text-rip-faint mt-[3px] tracking-[0.1em]">ЛЕГЕНДА</div></div>
+          <div className="text-center"><div className="text-[17px] text-rip-text leading-tight">{stats.reactions.toLocaleString('ru-RU')}</div><div className="text-[9px] text-rip-faint mt-[3px] tracking-[0.1em]">ЧЕРЕПКОВ</div></div>
+        </div>
 
         {user.bio && (
-          <p className="rip-serif italic text-[13px] text-rip-dim mt-3 leading-relaxed max-w-[280px]">{user.bio}</p>
+          <p className="text-xs text-rip-dim mt-[14px] leading-[1.5] max-w-[280px]">{user.bio}</p>
         )}
 
-        <button onClick={() => setEdit(!edit)} className="mt-3 px-4 py-1.5 border border-rip-line rounded text-[10px] text-rip-dim hover:text-rip-rust hover:border-rip-rust/50 transition-colors">
+        <button onClick={() => setEdit(!edit)} className="mt-4 px-[26px] py-[10px] border border-rip-line rounded-md text-[10px] text-rip-dim hover:text-rip-rust hover:border-rip-rust/50 transition-colors tracking-wide">
           {edit ? 'закрыть' : 'настроить профиль'}
         </button>
 
         {edit && (
-          <div className="mt-3 space-y-2 border border-rip-line rounded-lg p-3 bg-rip-panel/40 w-full max-w-[280px]">
+          <div className="mt-3 space-y-2 border border-rip-line rounded-lg p-3 bg-rip-panel/40 w-full max-w-[280px] text-left">
             <input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -141,13 +154,12 @@ export default function MyProfilePage() {
         )}
       </div>
 
-      {/* СТАТИСТИКА — как в концепте: ПОСТОВ / ЖИВЫ / ЛЕГЕНДА / ПОГИБЛО */}
-      <div className="grid grid-cols-4 divide-x divide-rip-line/50 border-b border-rip-line py-4 text-center">
-        <Stat label="ПОСТОВ" value={stats.total} />
-        <Stat label="ЖИВЫ" value={stats.alive} tone="text-rip-rust" />
-        <Stat label="ЛЕГЕНД" value={stats.legendary} tone="text-rip-gold" />
-        <Stat label="ПОГИБЛО" value={stats.dead} tone="text-rip-dim" />
-      </div>
+      {/* Легенда сезона — как в концепте (под шапкой) */}
+      {data.topPost && (
+        <p className="py-3 text-[10px] text-rip-faint italic text-center tracking-[0.06em] border-b border-rip-line">
+          ⭐ Легенда сезона: твой пост «{data.topPost.content.slice(0, 40)}{data.topPost.content.length > 40 ? '…' : ''}» пережил {data.topPost.survival_count} {plural(data.topPost.survival_count, ['волну', 'волны', 'волн'])}.
+        </p>
+      )}
 
       {/* ТАБЫ */}
       <div className="flex border-b border-rip-line text-[11px]">
@@ -198,15 +210,6 @@ export default function MyProfilePage() {
           <button onClick={() => void logout()} className="text-xs text-rip-blood/80 hover:text-rip-blood">выйти</button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, tone = '' }: { label: string; value: number; tone?: string }) {
-  return (
-    <div className="px-2">
-      <div className={`text-lg font-bold ${tone}`}>{value}</div>
-      <div className="text-[10px] text-rip-dim tracking-wider">{label}</div>
     </div>
   );
 }
