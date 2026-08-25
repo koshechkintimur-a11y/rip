@@ -15,13 +15,23 @@ export async function GET() {
 
   await refreshAttention();
   const slots = await q(
-    `select s.*, p.username
+    `select s.*, p.username,
+            exists(select 1 from attention_reactions where slot_id = s.id and user_id = $1) as my_skull
      from attention_slots s left join profiles p on p.id = s.user_id
-     where s.status in ('active','scheduled') and s.ends_at > now()
-     order by s.starts_at asc
-     limit 30`
+     where s.status in ('active','scheduled','echo')
+     order by (s.status = 'echo') desc, s.starts_at asc
+     limit 30`,
+    [user.id]
   );
-  return NextResponse.json({ slots });
+  // время следующей волны (daily_reset): прод 24ч, тесты TEST_SEASON_DURATION/24
+  const season = await qOne<{ last_reset_at: string | null; started_at: string }>(
+    `select last_reset_at, started_at from seasons where status = 'active' order by number desc limit 1`
+  );
+  const testDur = Number(process.env.TEST_SEASON_DURATION || 0);
+  const intervalMs = testDur > 0 ? (testDur * 1000) / 24 : 24 * 3600 * 1000;
+  const base = season?.last_reset_at ? new Date(season.last_reset_at) : season?.started_at ? new Date(season.started_at) : new Date();
+  const nextWaveAt = new Date(base.getTime() + intervalMs).toISOString();
+  return NextResponse.json({ slots, next_wave_at: nextWaveAt });
 }
 
 /** Купить слот(ы) внимания. Цена считается на сервере: 20 монет × 10 мин × слот. */
@@ -65,5 +75,12 @@ export async function POST(req: Request) {
   const purchase = res.purchase_attention;
 
   const wallet = await qOne<{ balance: number }>(`select balance from wallets where user_id = $1`, [user.id]);
-  return NextResponse.json({ ok: true, purchase, balance: wallet?.balance ?? 0, messageId: targetMessageId });
+  // id созданных слотов — чтобы UI/тест мог черепить конкретный крик
+  const created = await q<{ id: string }>(
+    `select id from attention_slots
+     where user_id = $1 and created_at > now() - interval '10 seconds'
+     order by created_at desc limit $2`,
+    [user.id, slots]
+  );
+  return NextResponse.json({ ok: true, purchase, balance: wallet?.balance ?? 0, messageId: targetMessageId, slotIds: created.map((r: any) => r.id) });
 }

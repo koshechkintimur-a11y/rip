@@ -71,6 +71,14 @@ export async function POST(req: Request) {
         ]);
         return NextResponse.json({ ok: true });
       }
+      case 'echo_threshold': {
+        // тестовый инструмент: понизить порог эхо у слота (чтобы не ждать 1000 черепков)
+        const slotId = body?.slotId as string;
+        const threshold = Number(body?.threshold);
+        if (!slotId || !threshold) return NextResponse.json({ error: 'Нужны slotId и threshold' }, { status: 400 });
+        await q(`update attention_slots set echo_threshold = $1 where id = $2`, [threshold, slotId]);
+        return NextResponse.json({ ok: true });
+      }
       default:
         return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 });
     }

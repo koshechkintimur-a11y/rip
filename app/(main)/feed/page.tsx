@@ -18,6 +18,7 @@ export default function FeedPage() {
   const { wallet, remainingMs } = useWorld();
   const router = useRouter();
   const [slots, setSlots] = useState<DbAttentionSlot[]>([]);
+  const [nextWaveAt, setNextWaveAt] = useState<string | null>(null);
   const [showBuy, setShowBuy] = useState(false);
   const [feedKey, setFeedKey] = useState(0);
   const [discusCount, setDiscusCount] = useState(0);
@@ -34,8 +35,8 @@ export default function FeedPage() {
     let alive = true;
     const load = async () => {
       try {
-        const d = await apiGet<{ slots: DbAttentionSlot[] }>('/api/attention');
-        if (alive) setSlots(d.slots || []);
+        const d = await apiGet<{ slots: DbAttentionSlot[]; next_wave_at?: string }>('/api/attention');
+        if (alive) { setSlots(d.slots || []); setNextWaveAt(d.next_wave_at ?? null); }
       } catch { /* тихо */ }
     };
     void load();
@@ -63,6 +64,7 @@ export default function FeedPage() {
           <AttentionFeed
             slots={slots}
             onOpenMessage={(messageId) => setModalMessageId(messageId)}
+            nextWaveAt={nextWaveAt}
           />
         </div>
       )}

@@ -63,10 +63,14 @@ export type DbAttentionSlot = {
   starts_at: string;
   ends_at: string;
   price: number;
-  status: 'scheduled' | 'active' | 'expired';
+  status: 'scheduled' | 'active' | 'expired' | 'echo' | 'dead';
   created_at: string;
   media_url: string | null;
   media_type: 'image' | 'gif' | 'video' | null;
+  skull_count: number;
+  waves_survived: number;
+  echo_threshold: number;
+  my_skull?: boolean;
   username?: string | null;
 };
 
