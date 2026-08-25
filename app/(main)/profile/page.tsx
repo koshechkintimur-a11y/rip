@@ -18,7 +18,7 @@ type MyProfile = {
 /** Мой профиль: статистика жизни в RIP + архивы + настройки. */
 export default function MyProfilePage() {
   const router = useRouter();
-  const { refresh } = useWorld();
+  const { season, refresh } = useWorld();
   const [data, setData] = useState<MyProfile | null>(null);
   const [tab, setTab] = useState<'survived' | 'dead' | 'saved'>('survived');
   const [edit, setEdit] = useState(false);
@@ -80,36 +80,36 @@ export default function MyProfilePage() {
 
   return (
     <div>
-      {/* ШАПКА */}
-      <div className="px-4 pt-4 pb-3 border-b border-rip-line">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="relative w-14 h-14 rounded-full bg-rip-panel border border-rip-line overflow-hidden flex items-center justify-center text-xl hover:border-rip-warn transition-colors shrink-0"
-            title={avatarUrl ? 'Сменить аватар' : 'Загрузить аватар'}
-          >
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              user.username[0]?.toUpperCase()
-            )}
-            {uploading && <span className="absolute inset-0 bg-black/50 flex items-center justify-center text-[10px]">…</span>}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => void onAvatarFile(e.target.files?.[0])} />
-          <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-base truncate">{user.display_name || user.username}</h1>
-            <p className="text-xs text-rip-dim">@{user.username}</p>
-          </div>
-          <button onClick={() => setEdit(!edit)} className="text-xs text-rip-dim border border-rip-line rounded px-2 py-1 hover:text-rip-text">
-            ⚙
-          </button>
-        </div>
-        {user.bio && <p className="mt-2 text-sm text-rip-text/90">{user.bio}</p>}
+      {/* ШАПКА — как в концепте: аватар, имя (serif), @tag + сезоны, цитата */}
+      <div className="px-4 pt-6 pb-4 border-b border-rip-line flex flex-col items-center text-center">
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="relative w-[72px] h-[72px] rounded-full bg-rip-panel border border-rip-line overflow-hidden flex items-center justify-center text-2xl hover:border-rip-rust transition-colors shrink-0"
+          title={avatarUrl ? 'Сменить аватар' : 'Загрузить аватар'}
+        >
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            user.username[0]?.toUpperCase()
+          )}
+          {uploading && <span className="absolute inset-0 bg-black/50 flex items-center justify-center text-[10px]">…</span>}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => void onAvatarFile(e.target.files?.[0])} />
+        <h1 className="rip-serif text-xl mt-2.5 text-rip-bone">{user.display_name || user.username}</h1>
+        <p className="text-[11px] text-rip-faint mt-1 tracking-wide">@{user.username} · в мире · сезон #{season?.number ?? '?'}</p>
+
+        {user.bio && (
+          <p className="rip-serif italic text-[13px] text-rip-dim mt-3 leading-relaxed max-w-[280px]">{user.bio}</p>
+        )}
+
+        <button onClick={() => setEdit(!edit)} className="mt-3 px-4 py-1.5 border border-rip-line rounded text-[10px] text-rip-dim hover:text-rip-rust hover:border-rip-rust/50 transition-colors">
+          {edit ? 'закрыть' : 'настроить профиль'}
+        </button>
 
         {edit && (
-          <div className="mt-3 space-y-2 border border-rip-line rounded-lg p-3 bg-rip-panel/40">
+          <div className="mt-3 space-y-2 border border-rip-line rounded-lg p-3 bg-rip-panel/40 w-full max-w-[280px]">
             <input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -141,25 +141,17 @@ export default function MyProfilePage() {
         )}
       </div>
 
-      {/* СТАТИСТИКА */}
-      <div className="grid grid-cols-4 divide-x divide-rip-line/50 border-b border-rip-line py-3 text-center">
-        <Stat label="всего" value={stats.total} />
-        <Stat label="выжило" value={stats.alive} tone="text-rip-rust" />
-        <Stat label="погибло" value={stats.dead} tone="text-rip-dim" />
-        <Stat label="легенд" value={stats.legendary} tone="text-rip-gold" />
-      </div>
-      <div className="grid grid-cols-2 divide-x divide-rip-line/50 border-b border-rip-line py-2 text-center text-[11px] text-rip-dim">
-        <div>↳ веток: <b className="text-rip-text">{stats.branches}</b></div>
-        <div>💬 в обсуждениях: <b className="text-rip-text">{stats.in_branches}</b></div>
+      {/* СТАТИСТИКА — как в концепте: ПОСТОВ / ЖИВЫ / ЛЕГЕНДА / ПОГИБЛО */}
+      <div className="grid grid-cols-4 divide-x divide-rip-line/50 border-b border-rip-line py-4 text-center">
+        <Stat label="ПОСТОВ" value={stats.total} />
+        <Stat label="ЖИВЫ" value={stats.alive} tone="text-rip-rust" />
+        <Stat label="ЛЕГЕНД" value={stats.legendary} tone="text-rip-gold" />
+        <Stat label="ПОГИБЛО" value={stats.dead} tone="text-rip-dim" />
       </div>
 
       {/* ТАБЫ */}
       <div className="flex border-b border-rip-line text-[11px]">
-        {([
-          ['survived', '🟢 Выжившие'],
-          ['dead', '💀 Погибшие'],
-          ['saved', '⭐ Архив'],
-        ] as const).map(([key, label]) => (
+        {([['survived', 'ВЫЖИВШИЕ'], ['dead', 'ПОГИБШИЕ'], ['saved', 'АРХИВ']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
