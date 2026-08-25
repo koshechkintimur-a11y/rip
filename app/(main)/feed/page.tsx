@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AttentionFeed } from '@/components/attention-feed';
-import { Composer } from '@/components/composer';
 import { FeedList } from '@/components/feed';
 import { MessageModal } from '@/components/message-modal';
 import { useWorld } from '@/components/world-provider';
@@ -13,7 +12,7 @@ import { getDeathState } from '@/lib/phases';
 import { apiGet } from '@/lib/api';
 import type { DbAttentionSlot } from '@/lib/types';
 
-/** Главный экран: бегущее внимание + лента + композер закреплён внизу. */
+/** Главный экран: бегущее внимание + лента. Пост — через модалку (надгробие в навигации). */
 export default function FeedPage() {
   const { wallet, remainingMs } = useWorld();
   const router = useRouter();
@@ -21,15 +20,12 @@ export default function FeedPage() {
   const [nextWaveAt, setNextWaveAt] = useState<string | null>(null);
   const [showBuy, setShowBuy] = useState(false);
   const [feedKey, setFeedKey] = useState(0);
-  const [discusCount, setDiscusCount] = useState(0);
-  const [discusFirstId, setDiscusFirstId] = useState<string | null>(null);
   // модалка ветки из ленты внимания (state-based: лента остаётся смонтированной)
   const [modalMessageId, setModalMessageId] = useState<string | null>(null);
 
-  // единый источник состояния умирания (внимание исчезает за 3 мин, композер — за 5)
+  // единый источник состояния умирания (внимание исчезает за 3 мин до конца)
   const deathState = getDeathState(remainingMs);
   const showAttention = deathState.showAttention && slots.length > 0;
-  const showComposer = deathState.showComposer;
 
   useEffect(() => {
     let alive = true;
@@ -54,12 +50,6 @@ export default function FeedPage() {
           style={{ top: 'var(--rip-header-h, 48px)' }}>
           <div className="flex items-center justify-between px-3 pt-2">
             <span className="text-[10px] tracking-widest text-rip-warn">⚡ ВНИМАНИЕ</span>
-            <button
-              onClick={() => setShowBuy(true)}
-              className="text-[10px] text-rip-dim hover:text-rip-warn transition-colors"
-            >
-              купить место (20 монет) →
-            </button>
           </div>
           <AttentionFeed
             slots={slots}
@@ -81,20 +71,9 @@ export default function FeedPage() {
       <div className="pb-40">
         <FeedList
           key={feedKey}
-          onDiscusChange={(count, firstId) => { setDiscusCount(count); setDiscusFirstId(firstId); }}
+          onDiscusChange={() => { /* посты теперь в модалке надгробия; дискус-счётчик не нужен в ленте */ }}
         />
       </div>
-
-      {/* КОМПОЗЕР — закреплён над нижней навигацией; исчезает за 5 мин до конца */}
-      {showComposer && (
-        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+3.5rem)] left-1/2 -translate-x-1/2 w-full max-w-xl z-30 border-t border-rip-line bg-rip-bg" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-          <Composer
-            onPosted={() => setFeedKey((k) => k + 1)}
-            discusCount={discusCount}
-            onDiscusClick={() => { if (discusFirstId) router.push(`/message/${discusFirstId}`); }}
-          />
-        </div>
-      )}
 
       {showBuy && <AttentionBuy onClose={() => setShowBuy(false)} />}
 

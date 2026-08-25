@@ -15,9 +15,11 @@ export async function GET() {
 
   await refreshAttention();
   const slots = await q(
-    `select s.*, p.username,
+    `select s.*, p.username, mm.media_url, mm.media_type,
             exists(select 1 from attention_reactions where slot_id = s.id and user_id = $1) as my_skull
-     from attention_slots s left join profiles p on p.id = s.user_id
+     from attention_slots s
+     left join profiles p on p.id = s.user_id
+     left join messages mm on mm.id = s.message_id
      where s.status in ('active','scheduled','echo')
      order by (s.status = 'echo') desc, s.starts_at asc
      limit 30`,

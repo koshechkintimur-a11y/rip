@@ -228,6 +228,12 @@ function FeedRow({ item, phase, onOpen }: { item: FeedItem; phase: string; onOpe
               {newAfterMe > 0 && <span className="text-[10px] font-bold">+{newAfterMe}</span>}
             </button>
             <ReactButton messageId={item.id} initialCount={item.reaction_count ?? 0} />
+            {/* бейдж крика: если пост продвинут в ленту внимания — показываем черепки крика */}
+            {!!item.cry_skulls && (
+              <span className="text-rip-warn font-mono text-[11px] flex items-center gap-1" title="Черепков в ленте внимания">
+                ⚡ {item.cry_skulls}
+              </span>
+            )}
             <button
               className="flex items-center gap-1 hover:text-rip-text transition-colors"
               onClick={async (e) => { e.stopPropagation(); const ok = await repostMessage(item.id); if (ok) { /* лента обновится поллингом */ } }}

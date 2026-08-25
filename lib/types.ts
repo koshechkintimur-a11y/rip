@@ -116,6 +116,7 @@ export type FeedItem = {
   repost_username?: string | null;
   reply_count?: number;
   repost_count?: number;
+  cry_skulls?: number;
   participated?: boolean;
   new_after_me?: number;
   event_kind?: string | null;

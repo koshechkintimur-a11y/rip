@@ -119,7 +119,7 @@ export function AttentionFeed({ slots, onOpenMessage, nextWaveAt }: {
                         волна {formatWave(waveIn)}
                       </span>
                     )}
-                    <span className={`text-[11px] font-mono ${s.my_skull ? 'text-rip-warn' : 'text-rip-dim'}`}>
+                    <span className={`text-[12px] font-mono font-bold ${s.my_skull ? 'text-rip-warn' : 'text-rip-gold'}`}>
                       💀 {s.skull_count}
                     </span>
                     {!isMine && (
