@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { apiPost, apiGet } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
 import { motion } from 'framer-motion';
+import { compressImage } from '@/lib/client-image';
 
 /** Покупка места в ленте внимания: текст + слоты + длительность + фото.
  *  Цена динамическая (20→5 монет к волне), риск виден ДО покупки. */
@@ -47,8 +48,9 @@ export function AttentionBuy({ onClose, initialContent, messageId }: {
 
   const onFile = async (f: File | undefined) => {
     if (!f) return;
+    const file = f.type.startsWith('image/') ? await compressImage(f) : f;
     const form = new FormData();
-    form.append('file', f);
+    form.append('file', file);
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: form }).then((r) => r.json());
       if (res.error) throw new Error(res.error);

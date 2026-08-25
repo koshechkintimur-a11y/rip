@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
 import { plural, formatDate } from '@/lib/phases';
+import { compressImage } from '@/lib/client-image';
 
 type MyProfile = {
   user: { username: string; email: string; display_name: string | null; bio: string | null; avatar_url: string | null; is_test_user: boolean };
@@ -57,7 +58,8 @@ export default function MyProfilePage() {
     setUploading(true);
     try {
       const form = new FormData();
-      form.append('file', file);
+      const uploadFile = file.type.startsWith('image/') ? await compressImage(file) : file;
+      form.append('file', uploadFile);
       const res = await fetch('/api/upload', { method: 'POST', body: form });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Ошибка загрузки');

@@ -5,6 +5,7 @@ import { useWorld } from '@/components/world-provider';
 import { apiPost } from '@/lib/api';
 import { GifPicker } from '@/components/gif-picker';
 import { motion } from 'framer-motion';
+import { compressImage } from '@/lib/client-image';
 
 /** Модалка создания поста (вместо композера в ленте, как в Threads).
  *  >200 символов → «дискус»: пост открывает тред, следующие сообщения
@@ -77,8 +78,10 @@ export function ComposerProvider({ children }: { children: React.ReactNode }) {
     const isImage = f.type.startsWith('image/');
     const isVideo = f.type === 'video/mp4' || f.type === 'video/webm';
     if (!isImage && !isVideo) { setError('Нужна картинка (PNG/JPEG/WebP/GIF/HEIC) или видео (MP4/WebM)'); return; }
+    // сжатие больших фото (canvas: 20MB → ~500KB)
+    const file = isImage ? await compressImage(f) : f;
     const form = new FormData();
-    form.append('file', f);
+    form.append('file', file);
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: form }).then((r) => r.json());
       if (res.error) throw new Error(res.error);

@@ -17,7 +17,7 @@ const ALLOWED_MIME: Record<string, string> = {
 };
 
 const MAX_SIZE = {
-  image: 5 * 1024 * 1024,      // 5 MB
+  image: 20 * 1024 * 1024,     // 20 MB — современные фото с телефонов (HEIC 8-12MB)
   gif: 10 * 1024 * 1024,       // 10 MB
   video: 30 * 1024 * 1024,     // 30 MB
 };

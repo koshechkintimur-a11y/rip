@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
 import { useLightbox } from '@/components/lightbox';
 import { Avatar } from '@/components/avatar';
+import { compressImage } from '@/lib/client-image';
 import { formatTime } from '@/lib/phases';
 
 type Msg = { id: string; conversation_id: string; sender_id: string; content: string; created_at: string; sender_username: string; sender_avatar_url?: string | null; media_url?: string | null };
@@ -66,8 +67,9 @@ export default function DmChatPage() {
       setError('Нужна картинка (PNG/JPEG/WebP/GIF/HEIC)');
       return;
     }
+    const file = await compressImage(f); // сжатие больших фото
     const form = new FormData();
-    form.append('file', f);
+    form.append('file', file);
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: form }).then((r) => r.json());
       if (res.error) throw new Error(res.error);

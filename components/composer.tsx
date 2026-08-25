@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useWorld } from '@/components/world-provider';
 import { apiPost } from '@/lib/api';
 import { GifPicker } from '@/components/gif-picker';
+import { compressImage } from '@/lib/client-image';
 
 /** Композер: текст + картинка + GIF + видео. */
 export function Composer({ onPosted, discusCount, onDiscusClick }: {
@@ -53,8 +54,10 @@ export function Composer({ onPosted, discusCount, onDiscusClick }: {
       setError('Нужна картинка (PNG/JPEG/WebP/GIF/HEIC) или видео (MP4/WebM)');
       return;
     }
+    // сжатие больших фото (canvas: 20MB → ~500KB)
+    const file = isImage ? await compressImage(f) : f;
     const form = new FormData();
-    form.append('file', f);
+    form.append('file', file);
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: form }).then((r) => r.json());
       if (res.error) throw new Error(res.error);

@@ -8,6 +8,7 @@ import { ReactButton } from '@/components/react-button';
 import { MediaRenderer } from '@/components/media-renderer';
 import { plural, formatTime } from '@/lib/phases';
 import type { FeedItem } from '@/lib/types';
+import { compressImage } from '@/lib/client-image';
 
 /**
  * ОБЩАЯ логика ветки сообщения: root + ответы + поллинг + дроп с медиа +
@@ -109,8 +110,9 @@ export function MessageThread({ messageId, backLabel, onBack, onClose }: {
       setError('Нужна картинка (PNG/JPEG/WebP/GIF/HEIC)');
       return;
     }
+    const file = await compressImage(f); // сжатие больших фото
     const form = new FormData();
-    form.append('file', f);
+    form.append('file', file);
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: form }).then((r) => r.json());
       if (res.error) throw new Error(res.error);
