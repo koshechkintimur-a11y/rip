@@ -144,7 +144,7 @@ export default function MyProfilePage() {
       {/* СТАТИСТИКА */}
       <div className="grid grid-cols-4 divide-x divide-rip-line/50 border-b border-rip-line py-3 text-center">
         <Stat label="всего" value={stats.total} />
-        <Stat label="выжило" value={stats.alive} tone="text-rip-green" />
+        <Stat label="выжило" value={stats.alive} tone="text-rip-rust" />
         <Stat label="погибло" value={stats.dead} tone="text-rip-dim" />
         <Stat label="легенд" value={stats.legendary} tone="text-rip-gold" />
       </div>
@@ -191,7 +191,7 @@ export default function MyProfilePage() {
                 <span>{formatDate(m.created_at)}</span>
                 {m.status === 'legendary' && <span className="text-rip-gold">⭐ {m.survival_count} выживаний</span>}
                 {m.status === 'dead' && <span className="text-rip-dim/70">умерло {m.died_at ? formatDate(m.died_at) : ''}</span>}
-                {m.status === 'active' && <span className="text-rip-green">живое</span>}
+                {m.status === 'active' && <span className="text-rip-rust">живое</span>}
               </div>
               <p className={`text-sm mt-0.5 ${m.status === 'dead' ? 'line-through decoration-rip-dim/40 text-rip-dim' : ''}`}>{m.content}</p>
             </div>

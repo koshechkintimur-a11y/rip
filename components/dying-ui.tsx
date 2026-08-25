@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useWorld } from '@/components/world-provider';
 import { useTelegram } from '@/components/telegram/TelegramProvider';
 import { formatCountdown, getDeathState } from '@/lib/phases';
@@ -15,8 +16,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: React.ReactNode }) {
   const { phase, remainingMs, season } = useWorld();
   const { isTelegram } = useTelegram();
+  const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  // название текущего раздела — как в концепте (ЧАТ · ЛИЧКА · УВЕДОМЛЕНИЯ · ПРОФИЛЬ)
+  const sectionTitle =
+    pathname === '/feed' ? 'ЧАТ'
+    : pathname.startsWith('/dm') ? 'ЛИЧКА'
+    : pathname.startsWith('/notifications') ? 'УВЕДОМЛЕНИЯ'
+    : pathname.startsWith('/profile') ? 'ПРОФИЛЬ'
+    : pathname.startsWith('/message') ? 'ВЕТКА'
+    : pathname.startsWith('/seasons') ? 'СЕЗОНЫ'
+    : '';
 
   // измеряем высоту шапки, чтобы sticky-элементы (лента внимания) вставали ровно под ней
   useEffect(() => {
@@ -57,20 +69,21 @@ export function DyingUI({ children, nav }: { children: React.ReactNode; nav?: Re
               : 'calc(env(safe-area-inset-top, 0px) + 6px)' }}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-rip-dim tracking-widest shrink-0">RIP</span>
-              <div className={`text-center font-mono ${countdownTone} ${isFinal ? 'text-base' : isEmergency ? 'text-sm' : 'text-xs'} tracking-wider`}>
+              {/* слева — название раздела (как в концепте: ЧАТ / ЛИЧКА / УВЕДОМЛЕНИЯ / ПРОФИЛЬ) */}
+              <span className="rip-serif text-[13px] tracking-[0.18em] text-rip-bone shrink-0">{sectionTitle}</span>
+              {/* справа — сезон с именем + сколько осталось (как в концепте: СЕЗОН #4 «ЭХО» · 2 ДНЯ 14 Ч) */}
+              <div className={`font-mono ${isFinal ? 'text-base' : isEmergency ? 'text-sm' : 'text-xs'} tracking-wider text-right`}>
                 {season && remainingMs > 0 && (
                   <>
-                    <Link href="/seasons" className="text-rip-dim hover:text-rip-warn transition-colors" title="История сезонов">СЕЗОН #{season.number}{season.name ? ` «${season.name}»` : ''}</Link>
+                    <Link href="/seasons" className="text-rip-rust hover:text-rip-warn transition-colors" title="История сезонов">СЕЗОН #{season.number}{season.name ? ` «${season.name}»` : ''}</Link>
                     <span className="mx-1 text-rip-dim">·</span>
-                    ОСТАЛОСЬ {formatCountdown(remainingMs)}
+                    <span className="text-rip-dim">{formatCountdown(remainingMs)}</span>
                   </>
                 )}
                 {season && remainingMs <= 0 && !isDead && (
-                  <Link href="/seasons" className="text-rip-blood hover:text-rip-warn transition-colors">СЕЗОН #{season.number} ЗАВЕРШАЕТСЯ…</Link>
+                  <Link href="/seasons" className="text-rip-rust hover:text-rip-warn transition-colors">СЕЗОН #{season.number} ЗАВЕРШАЕТСЯ…</Link>
                 )}
               </div>
-              <span className="w-8 shrink-0" />
             </div>
             {isFinal && (
               <p className="text-center text-[10px] text-rip-blood mt-1 tracking-wider leading-tight">

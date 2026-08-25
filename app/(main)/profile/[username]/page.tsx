@@ -75,7 +75,7 @@ export default function UserProfilePage() {
       {/* статистика */}
       <div className="grid grid-cols-4 divide-x divide-rip-line/50 border-b border-rip-line py-3 text-center">
         <div className="px-2"><div className="text-lg font-bold">{stats.total}</div><div className="text-[10px] text-rip-dim">всего</div></div>
-        <div className="px-2"><div className="text-lg font-bold text-rip-green">{stats.alive}</div><div className="text-[10px] text-rip-dim">выжило</div></div>
+        <div className="px-2"><div className="text-lg font-bold text-rip-rust">{stats.alive}</div><div className="text-[10px] text-rip-dim">выжило</div></div>
         <div className="px-2"><div className="text-lg font-bold text-rip-dim">{stats.dead}</div><div className="text-[10px] text-rip-dim">погибло</div></div>
         <div className="px-2"><div className="text-lg font-bold text-rip-gold">{stats.legendary}</div><div className="text-[10px] text-rip-dim">легенд</div></div>
       </div>

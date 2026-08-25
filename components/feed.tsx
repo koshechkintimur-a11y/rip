@@ -245,8 +245,9 @@ function FeedRow({ item, phase, onOpen }: { item: FeedItem; phase: string; onOpe
 
 function SystemRow({ item }: { item: FeedItem }) {
   const kind = item.event_kind;
-  const icon = kind === 'season_ended' ? '☠' : kind === 'reset_done' ? '🟢' : kind === 'season_started' ? '🌱' : kind === 'season_warning' ? '⚠️' : '◆';
-  const accent = kind === 'season_ended' ? 'text-rip-blood' : kind === 'season_warning' ? 'text-rip-warn' : 'text-rip-green';
+  // без эмодзи и без зелёного — как в концепте: нейтральный тон
+  const icon = kind === 'season_ended' ? '☠' : kind === 'season_warning' ? '⚠️' : '◆';
+  const accent = kind === 'season_ended' ? 'text-rip-blood' : kind === 'season_warning' ? 'text-rip-warn' : 'text-rip-dim/60';
 
   return (
     <div className="py-3 flex gap-2 items-start">
