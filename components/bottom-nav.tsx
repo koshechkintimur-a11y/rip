@@ -51,18 +51,38 @@ export function BottomNav() {
 
   // hide/show on scroll
   useEffect(() => {
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const show = () => {
+      if (!navRef.current) return;
+      navRef.current.style.transform = 'translateY(0)';
+      navRef.current.style.transition = 'transform 0.3s ease';
+    };
     const onScroll = () => {
       const y = window.scrollY;
       if (!navRef.current) { lastY.current = y; return; }
       const dy = y - lastY.current;
+      // экран статичен — показываем (debounce после остановки скролла)
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(show, 300);
       if (Math.abs(dy) < 5) return;
-      // translateX не нужен — панель inset-x-0 (прижата к краям)
-      navRef.current.style.transform = `translateY(${dy > 0 ? '100%' : '0'})`;
-      navRef.current.style.transition = 'transform 0.3s ease';
+      if (y <= 0) {
+        // на верху ленты — панель всегда видна
+        show();
+      } else if (dy > 0) {
+        // скролл вниз — прячем
+        navRef.current.style.transform = 'translateY(100%)';
+        navRef.current.style.transition = 'transform 0.3s ease';
+      } else {
+        // скролл вверх — показываем
+        show();
+      }
       lastY.current = y;
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (idleTimer) clearTimeout(idleTimer);
+    };
   }, []);
 
   const item = (href: string, icon: React.ReactNode, badge?: number) => {
