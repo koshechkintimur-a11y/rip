@@ -7,12 +7,13 @@ import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
 import { plural, formatDate } from '@/lib/phases';
 import { compressImage } from '@/lib/client-image';
+import { MediaRenderer } from '@/components/media-renderer';
 
 type MyProfile = {
   user: { username: string; email: string; display_name: string | null; bio: string | null; avatar_url: string | null; is_test_user: boolean };
   wallet: { balance: number };
   stats: { total: number; alive: number; dead: number; legendary: number; branches: number; in_branches: number; reactions: number };
-  messages: Array<{ id: string; content: string; status: string; survival_count: number; created_at: string; died_at: string | null }>;
+  messages: Array<{ id: string; content: string; media_url: string | null; media_type: string | null; status: string; survival_count: number; created_at: string; died_at: string | null }>;
   saved: Array<{ message_id: string; content: string; label: string }>;
   season: { first_season: number | null; seasons_count: number };
   topPost: { content: string; survival_count: number } | null;
@@ -203,6 +204,8 @@ export default function MyProfilePage() {
                 {m.status === 'active' && <span className="text-rip-rust">живое</span>}
               </div>
               <p className={`text-sm mt-0.5 ${m.status === 'dead' ? 'line-through decoration-rip-dim/40 text-rip-dim' : ''}`}>{m.content}</p>
+              {/* фото/видео поста (фикс: раньше медиа не показывалось в профиле) */}
+              {m.media_url && <MediaRenderer url={m.media_url} type={m.media_type} />}
             </div>
           ))}
       </div>

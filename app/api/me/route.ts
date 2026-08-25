@@ -23,7 +23,7 @@ export async function GET() {
       [user.id]
     ),
     q(
-      `select id, content, status, survival_count, created_at, died_at
+      `select id, content, media_url, media_type, status, survival_count, created_at, died_at
        from messages where author_id = $1
        order by created_at desc limit 100`,
       [user.id]
