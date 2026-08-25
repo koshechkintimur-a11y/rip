@@ -14,7 +14,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
   await refreshAttention();
-  const slots = await q(
+  const rawSlots = await q<Record<string, any>>(
     `select s.*, p.username, mm.media_url, mm.media_type,
             exists(select 1 from attention_reactions where slot_id = s.id and user_id = $1) as my_skull
      from attention_slots s
@@ -25,6 +25,33 @@ export async function GET() {
      limit 30`,
     [user.id]
   );
+
+  // Фикс дубля: несколько слотов одного сообщения (покупка 2+ слотов на пост)
+  // показываем ОДНОЙ карточкой, черепки суммируются. Представитель —
+  // живой слот (echo > active > scheduled), чтобы черепок уходил на активный.
+  const grouped = new Map<string, Record<string, any>>();
+  for (const s of rawSlots) {
+    const key = s.message_id || s.id;
+    const existing = grouped.get(key);
+    if (!existing) {
+      grouped.set(key, { ...s });
+      continue;
+    }
+    // суммируем черепки
+    existing.skull_count = (existing.skull_count || 0) + (s.skull_count || 0);
+    existing.my_skull = !!(existing.my_skull || s.my_skull);
+    // представитель — более живой слот
+    const rank = (st: string) => (st === 'echo' ? 0 : st === 'active' ? 1 : 2);
+    if (rank(s.status) < rank(existing.status)) {
+      existing.id = s.id;
+      existing.status = s.status;
+      existing.starts_at = s.starts_at;
+      existing.ends_at = s.ends_at;
+      existing.position = s.position;
+    }
+    if (s.starts_at < existing.starts_at) existing.starts_at = s.starts_at;
+  }
+  const slots = Array.from(grouped.values());
   // время следующей волны (daily_reset): прод 24ч, тесты TEST_SEASON_DURATION/24
   const season = await qOne<{ last_reset_at: string | null; started_at: string }>(
     `select last_reset_at, started_at from seasons where status = 'active' order by number desc limit 1`
