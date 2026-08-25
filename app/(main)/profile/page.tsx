@@ -29,6 +29,7 @@ export default function MyProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -65,7 +66,8 @@ export default function MyProfilePage() {
       setAvatarUrl(d.url);
       refresh();
     } catch (e: any) {
-      alert(e.message || 'Не удалось загрузить аватар');
+      // UI-003: без alert — инлайн-ошибка
+      setAvatarError(e.message || 'Не удалось загрузить');
     }
     setUploading(false);
   };
@@ -99,6 +101,7 @@ export default function MyProfilePage() {
           {uploading && <span className="absolute inset-0 bg-black/50 flex items-center justify-center text-[10px]">…</span>}
         </button>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => void onAvatarFile(e.target.files?.[0])} />
+        {avatarError && <p className="mt-2 text-[11px] text-rip-blood">⚠️ {avatarError}</p>}
 
         <h1 className="rip-serif text-lg mt-2.5 text-rip-bone leading-tight">{user.display_name || user.username}</h1>
         <p className="text-[10px] text-rip-faint mt-1 tracking-[0.1em]">

@@ -55,7 +55,7 @@ export default function NotificationsPage() {
         ← чат
       </button>
       <h1 className="px-4 pt-1 pb-2 text-sm font-bold tracking-wider flex items-center gap-2">
-        🔔 УВЕДОМЛЕНИЯ
+        УВЕДОМЛЕНИЯ
         {newCount > 0 && (
           <span className="text-[10px] text-rip-warn border border-rip-warn/50 rounded px-1.5 py-0.5">
             {newCount} {plural(newCount, ['новое', 'новых', 'новых'])}
@@ -85,9 +85,14 @@ export default function NotificationsPage() {
                 n.is_new ? 'bg-rip-warn/5 border-l-2 border-l-rip-warn' : ''
               }`}
             >
-              <button onClick={(e) => { e.stopPropagation(); router.push(`/profile/${n.reactor_username}`); }}>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); router.push(`/profile/${n.reactor_username}`); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); router.push(`/profile/${n.reactor_username}`); } }}
+              >
                 <Avatar url={n.reactor_avatar_url} username={n.reactor_username} size={36} />
-              </button>
+              </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm">
                   <span className="font-semibold" onClick={(e) => { e.stopPropagation(); router.push(`/profile/${n.reactor_username}`); }}>@{n.reactor_username}</span>{' '}

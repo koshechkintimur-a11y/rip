@@ -76,6 +76,12 @@ export function MessageThread({ messageId, backLabel, onBack, onClose }: {
     })();
   }, []);
 
+  // UI-002: открыли ветку — свои уведомления по этому сообщению становятся прочитанными
+  useEffect(() => {
+    if (!myId || !root || root.author_id !== myId) return;
+    fetch(`/api/messages/${root.id}/seen`, { method: 'POST' }).catch(() => {});
+  }, [myId, root]);
+
   const sendReply = async () => {
     const content = replyText.trim();
     if (!content && !replyMedia) return;

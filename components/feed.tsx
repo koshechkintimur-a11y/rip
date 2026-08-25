@@ -24,8 +24,7 @@ async function repostMessage(messageId: string): Promise<boolean> {
     if (!res.ok) throw new Error(d?.error || 'Ошибка репоста');
     return true;
   } catch (e: any) {
-    alert(e.message || 'Не удалось репостнуть');
-    return false;
+    return false; // UI-003: без alert — FeedList покажет инлайн-ошибку через setError
   }
 }
 
@@ -36,6 +35,8 @@ export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, 
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasLoadedMore, setHasLoadedMore] = useState(false);
+  const hasLoadedMoreRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -60,9 +61,11 @@ export function FeedList({ onDiscusChange }: { onDiscusChange?: (count: number, 
       const data = await fetch(`/api/feed${qs}`).then((r) => r.json());
       if (seq !== pageSeq.current) return; // устаревший ответ — игнорируем
       if (data.error) throw new Error(data.error);
-      // Первая страница ВСЕГДА заменяет ленту: новые сообщения появляются,
-      // погибшие (dead) исчезают без ручного refresh. Пагинация (before) — мержит в конец.
-      const shouldReplace = !before;
+      // UI-001: первая страница заменяет ленту ТОЛЬКО пока пагинация не загружена.
+      // После подгрузки (скролл вниз) поллинг мержит новые сверху — иначе
+      // скролл прыгает наверх каждые 3.5с и подгруженные посты пропадают.
+      const shouldReplace = !before && !hasLoadedMoreRef.current;
+      if (before) { setHasLoadedMore(true); hasLoadedMoreRef.current = true; }
       mergeItems(data.items || [], shouldReplace);
       setHasMore(data.hasMore);
       setError(null);

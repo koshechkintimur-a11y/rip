@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { startNextSeason, getActiveSeason } from '@/lib/season/engine';
+import { startNextSeason, getActiveSeason, runSeasonDeath } from '@/lib/season/engine';
 
 /** CONTINUE после смерти сезона: вернуть активный сезон (идемпотентно — новый создаётся автоматически при смерти). */
 export async function POST() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
-  // идемпотентность: если уже есть активный сезон — возвращаем его (новый рождается в runSeasonDeath)
+  // UI-005: клиент показывает death по таймеру, а сервер ещё не запускал cron.
+  // Если активный сезон ИСТЁК — завершаем его здесь, чтобы CONTINUE рождал новый.
   const active = await getActiveSeason();
+  if (active && new Date((active as any).ends_at).getTime() <= Date.now()) {
+    await runSeasonDeath();
+    const season = await startNextSeason();
+    return NextResponse.json({ ok: true, season });
+  }
   if (active) {
     return NextResponse.json({ ok: true, season: active });
   }

@@ -108,12 +108,12 @@ export function WorldProvider({ children }: { children: React.ReactNode }) {
     return new Date(season.ends_at).getTime() - now;
   }, [season, now]);
 
-  // phase: DEATH — только если сервер сказал, что сезон завершён
+  // phase: DEATH — по таймеру (remainingMs<=0), не ждём тик крона (UI-005).
+  // Сервер всё равно авторитетен для записей; CONTINUE идемпотентно завершит сезон.
   const phase: SeasonPhase = useMemo(() => {
     if (!season) return 'calm';
     if (season.status === 'ended') return 'death';
-    // active сезон с истекшим таймером — финальная стадия (ждём сервер)
-    if (remainingMs <= 0) return 'final';
+    if (remainingMs <= 0) return 'death';
     return getPhase(remainingMs);
   }, [season, remainingMs]);
 

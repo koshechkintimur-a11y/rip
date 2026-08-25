@@ -56,7 +56,9 @@ export function BottomNav() {
       if (!navRef.current) { lastY.current = y; return; }
       const dy = y - lastY.current;
       if (Math.abs(dy) < 5) return; // игнорируем микро-движения
-      navRef.current.style.transform = dy > 0 ? 'translateY(100%)' : 'translateY(0)';
+      // UI-014: сохраняем translateX(-50%) (Tailwind -translate-x-1/2),
+      // иначе nav уезжает вправо за экран на половину ширины
+      navRef.current.style.transform = `translateX(-50%) translateY(${dy > 0 ? '100%' : '0'})`;
       navRef.current.style.transition = 'transform 0.3s ease';
       lastY.current = y;
     };

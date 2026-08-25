@@ -85,7 +85,15 @@ export function AttentionFeed({ slots, onOpenMessage, nextWaveAt }: {
                 ${isEcho ? 'border border-rip-gold/50 shadow-[0_0_18px_rgba(217,180,92,0.12)]' : 'border border-rip-warn/30'}
                 ${s.message_id ? 'cursor-pointer active:scale-[0.98] transition-transform' : 'cursor-default'}`}
             >
-              {s.media_url && (
+              {s.media_url && (s.media_type === 'video' || /\.(mp4|webm)(\?|$)/i.test(s.media_url)) ? (
+                <video
+                  src={s.media_url}
+                  className="w-full h-24 object-cover border-b border-rip-line"
+                  muted
+                  playsInline
+                  preload="metadata"
+                />
+              ) : s.media_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={s.media_url}
@@ -93,7 +101,7 @@ export function AttentionFeed({ slots, onOpenMessage, nextWaveAt }: {
                   className="w-full h-24 object-cover border-b border-rip-line"
                   loading="lazy"
                 />
-              )}
+              ) : null}
               <div className="p-2.5 flex flex-col gap-1 flex-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">

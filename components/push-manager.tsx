@@ -79,7 +79,7 @@ export function PushManager() {
   if (status === 'subscribed') {
     return (
       <div className="px-4 py-2 flex items-center justify-between text-[11px] border-b border-rip-line/40 bg-rip-panel/30">
-        <span className="text-rip-green">🔔 уведомления включены</span>
+        <span className="text-rip-rust">🔔 уведомления включены</span>
         <button onClick={() => void unsubscribe()} className="text-rip-dim hover:text-rip-text">выключить</button>
       </div>
     );

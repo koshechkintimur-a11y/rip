@@ -54,11 +54,14 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           try {
             tg.ready?.();
             tg.expand?.();
-            // полноэкранный режим ТОЛЬКО на мобильных (на десктопе WebView
-            // растягивается на весь экран и ломает вёрстку)
+            // UI-015: повторный expand через 500мс (Telegram может не успеть)
+            setTimeout(() => { try { tg.expand?.(); } catch {} }, 500);
+            // полноэкранный режим на мобильных + unknown (безопасно)
             const platform = tg.platform || 'unknown';
-            const isMobile = ['ios', 'android'].includes(platform);
-            if (isMobile && typeof tg.requestFullscreen === 'function') tg.requestFullscreen();
+            const isMobile = ['ios', 'android', 'unknown'].includes(platform);
+            if (isMobile && typeof tg.requestFullscreen === 'function') {
+              try { tg.requestFullscreen(); } catch {}
+            }
             tg.setBackgroundColor?.('#0a0a0c');
             tg.setHeaderColor?.('#0a0a0c');
             tg.disableVerticalSwipes?.();
