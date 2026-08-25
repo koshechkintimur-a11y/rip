@@ -31,7 +31,13 @@ export async function GET() {
   const intervalMs = testDur > 0 ? (testDur * 1000) / 24 : 24 * 3600 * 1000;
   const base = season?.last_reset_at ? new Date(season.last_reset_at) : season?.started_at ? new Date(season.started_at) : new Date();
   const nextWaveAt = new Date(base.getTime() + intervalMs).toISOString();
-  return NextResponse.json({ slots, next_wave_at: nextWaveAt });
+  // текущая цена слота (динамическая, от времени до волны) + риск
+  const price = await qOne<{ unit_price: number }>(
+    `select attention_unit_price()::int as unit_price`
+  );
+  const waveInMin = Math.max(0, Math.round((new Date(nextWaveAt).getTime() - Date.now()) / 60000));
+  const chance = waveInMin > 240 ? 'высокий' : waveInMin > 60 ? 'средний' : 'низкий';
+  return NextResponse.json({ slots, next_wave_at: nextWaveAt, unit_price: price?.unit_price ?? 20, wave_in_minutes: waveInMin, chance });
 }
 
 /** Купить слот(ы) внимания. Цена считается на сервере: 20 монет × 10 мин × слот. */

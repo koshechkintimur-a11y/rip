@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { apiPost } from '@/lib/api';
+import { useState, useRef, useEffect } from 'react';
+import { apiPost, apiGet } from '@/lib/api';
 import { useWorld } from '@/components/world-provider';
 import { motion } from 'framer-motion';
 
-/** Покупка места в ленте внимания: текст + слоты + длительность + фото. */
+/** Покупка места в ленте внимания: текст + слоты + длительность + фото.
+ *  Цена динамическая (20→5 монет к волне), риск виден ДО покупки. */
 export function AttentionBuy({ onClose, initialContent, messageId }: {
   onClose: () => void;
   /** предзаполнить текст (при продвижении сообщения из ветки) */
@@ -21,9 +22,28 @@ export function AttentionBuy({ onClose, initialContent, messageId }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [unitPrice, setUnitPrice] = useState(20);
+  const [waveInMin, setWaveInMin] = useState(0);
+  const [chance, setChance] = useState<'высокий' | 'средний' | 'низкий'>('высокий');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const cost = 20 * (minutes / 10) * slots;
+  // текущая цена и риск (от времени до волны)
+  useEffect(() => {
+    void (async () => {
+      try {
+        const d = await apiGet<{ unit_price?: number; wave_in_minutes?: number; chance?: 'высокий' | 'средний' | 'низкий' }>('/api/attention');
+        if (typeof d.unit_price === 'number') setUnitPrice(d.unit_price);
+        if (typeof d.wave_in_minutes === 'number') setWaveInMin(d.wave_in_minutes);
+        if (d.chance) setChance(d.chance);
+      } catch { /* тихо */ }
+    })();
+  }, []);
+
+  const cost = unitPrice * (minutes / 10) * slots;
+  const waveLabel = waveInMin >= 60
+    ? `${Math.floor(waveInMin / 60)} ч ${waveInMin % 60} мин`
+    : `${waveInMin} мин`;
+  const chanceColor = chance === 'высокий' ? 'text-rip-rust' : chance === 'средний' ? 'text-rip-warn' : 'text-rip-blood';
 
   const onFile = async (f: File | undefined) => {
     if (!f) return;
@@ -136,6 +156,26 @@ export function AttentionBuy({ onClose, initialContent, messageId }: {
                     >{m}</button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* РИСК ДО ПОКУПКИ (ТЗ: дешёвый крик = рискованнее, не выгоднее) */}
+            <div className="mt-3 border border-rip-line rounded-lg p-3 bg-rip-bg/50 space-y-1">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-rip-dim">Цена слота</span>
+                <span className="font-mono text-rip-text">{unitPrice} монет</span>
+              </div>
+              <div className="flex justify-between text-[11px]">
+                <span className="text-rip-dim">До волны</span>
+                <span className="font-mono text-rip-text">{waveLabel}</span>
+              </div>
+              <div className="flex justify-between text-[11px]">
+                <span className="text-rip-dim">Нужно для эха</span>
+                <span className="font-mono text-rip-text">1000 💀</span>
+              </div>
+              <div className="flex justify-between text-[11px]">
+                <span className="text-rip-dim">Шанс на эхо</span>
+                <span className={`font-mono ${chanceColor}`}>{chance}</span>
               </div>
             </div>
 
