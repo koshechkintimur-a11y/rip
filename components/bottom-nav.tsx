@@ -55,10 +55,9 @@ export function BottomNav() {
       const y = window.scrollY;
       if (!navRef.current) { lastY.current = y; return; }
       const dy = y - lastY.current;
-      if (Math.abs(dy) < 5) return; // игнорируем микро-движения
-      // UI-014: сохраняем translateX(-50%) (Tailwind -translate-x-1/2),
-      // иначе nav уезжает вправо за экран на половину ширины
-      navRef.current.style.transform = `translateX(-50%) translateY(${dy > 0 ? '100%' : '0'})`;
+      if (Math.abs(dy) < 5) return;
+      // translateX не нужен — панель inset-x-0 (прижата к краям)
+      navRef.current.style.transform = `translateY(${dy > 0 ? '100%' : '0'})`;
       navRef.current.style.transition = 'transform 0.3s ease';
       lastY.current = y;
     };
@@ -86,7 +85,7 @@ export function BottomNav() {
   return (
     <nav
       ref={navRef}
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl border-t border-rip-line bg-rip-bg/95 backdrop-blur z-40 grid grid-cols-5"
+      className="fixed bottom-0 inset-x-0 mx-auto w-full max-w-xl border-t border-rip-line bg-rip-bg/95 backdrop-blur z-40 grid grid-cols-5"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {item('/feed', <HomeIcon active={pathname === '/feed'} />)}

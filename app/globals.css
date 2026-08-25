@@ -10,6 +10,10 @@ html, body {
   background: #0b0b0d;
   color: #ececea;
   -webkit-tap-highlight-color: transparent;
+  /* защита от горизонтального скролла/сдвига в Telegram WebView */
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 
 * { -webkit-font-smoothing: antialiased; }
